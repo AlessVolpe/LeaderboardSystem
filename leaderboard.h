@@ -5,8 +5,6 @@
 #ifndef LEADERBOARD_H
 #define LEADERBOARD_H
 
-#include <string.h>
-
 #include "error_handling.h"
 
 struct Node;
@@ -32,9 +30,8 @@ inline Node* parent(struct Node* src, const int val, const int parent) {
 
 inline Node* search(const int score, const short id, Node* src) {
     if (src == NULL) handle_error("EMPTY_TREE");
-
-    if (id < src->id) return search(score, id, src->left);
-    if (id > src->id) return search(score, id, src->right);
+    else if (id < src->id) return search(score, id, src->left);
+    else if (id > src->id) return search(score, id, src->right);
     return src;
 }
 
