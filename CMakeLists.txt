@@ -8,4 +8,6 @@ add_executable(leaderboardsystem main.c
         leaderboard.h
         error_handling.h
         player_pool.h
+        linked_list.h
+        overflow.h
 )

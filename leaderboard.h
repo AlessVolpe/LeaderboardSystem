@@ -9,7 +9,7 @@
 
 struct Node;
 typedef struct Node {
-    short id;
+    char* id;
     int score, size;
     struct Node* left;
     struct Node* right;
@@ -17,7 +17,7 @@ typedef struct Node {
 
 Node* root;
 
-inline Node* parent(struct Node* src, const int val, const int parent) {
+inline Node* parent(struct Node* src, const char* val, const int parent) {
     if (src == NULL) handle_error("EMPTY_TREE");
 
     if (src->id != val) {
@@ -28,14 +28,14 @@ inline Node* parent(struct Node* src, const int val, const int parent) {
     return src;
 }
 
-inline Node* search(const int score, const short id, Node* src) {
+inline Node* tr_search(const int score, const char* id, Node* src) {
     if (src == NULL) handle_error("EMPTY_TREE");
-    else if (id < src->id) return search(score, id, src->left);
-    else if (id > src->id) return search(score, id, src->right);
+    else if (id < src->id) return tr_search(score, id, src->left);
+    else if (id > src->id) return tr_search(score, id, src->right);
     return src;
 }
 
-inline void new_node (const short id, const int size, const int score) {
+inline void new_node (char* id, const int size, const int score) {
     Node* node = malloc(sizeof(Node));
     node->id = id;
     node->size = size;
@@ -47,7 +47,7 @@ inline void new_node (const short id, const int size, const int score) {
     free(node);
 }
 
-inline int insert(const Node* root, const short id, const int size, const int score) {
+inline int insert(const Node* root, const char* id, const int size, const int score) {
     const int id_diff = root->id - id;
 
     for(;;) {

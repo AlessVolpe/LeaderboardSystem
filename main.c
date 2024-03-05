@@ -3,8 +3,8 @@
 #include "player.h";
 #include "leaderboard.h";
 
-int ranking(const int score, const short id) {
-    Node* x = search(score, id, root);
+int ranking(const int score, const char* id) {
+    Node* x = tr_search(score, id, root);
     if (x->id == 0) return -1;
 
     int r = x->right->size + 1;
