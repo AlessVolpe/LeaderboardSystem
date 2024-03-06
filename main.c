@@ -1,5 +1,7 @@
-#include "headers/player.h"
-#include "headers/leaderboard.h"
+#include <stdio.h>
+
+// #include "headers/player.h"
+// #include "headers/leaderboard.h"
 #include "headers/id_generation.h"
 
 /*
