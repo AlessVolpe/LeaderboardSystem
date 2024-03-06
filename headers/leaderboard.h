@@ -17,10 +17,9 @@ typedef struct Node {
 
 Node* root;
 
-inline Node* parent(struct Node* src, const char* val, const int parent) {
+inline Node* parent(Node* src, const char* val, const char* parent_id) {
     if (src == NULL) handle_error("EMPTY_TREE");
-
-    if (src->id != val) {
+    else if (src->id != val) {
         parent(src->left, val, src->id);
         parent(src->right, val, src->id);
     }
