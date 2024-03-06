@@ -42,7 +42,7 @@ void print_table(const PlayerPool* table) {
     }
 }
 
-void insert(const PlayerPool* table, const char* key, const char* value) {
+void pp_insert(PlayerPool* table, const char* key, const char* value) {
     Player* item = create_player(key, value);
     const int index = hash_function(key);
     const Player* current_item = table->players[index];
@@ -64,7 +64,7 @@ void insert(const PlayerPool* table, const char* key, const char* value) {
     }
 }
 
-void delete(const PlayerPool* table, const char* key) {
+void delete(PlayerPool* table, const char* key) {
     const int index = hash_function(key);
     Player* item = table->players[index];
     LinkedList* head = table->overflow_buckets[index];

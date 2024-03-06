@@ -36,7 +36,7 @@ void new_node (char* id, const int size, const int score) {
     free(node);
 }
 
-int insert(const Node* root, const char* id, const int size, const int score) {
+int lb_insert(const Node* root, char* id, const int size, const int score) {
     const int id_diff = root->id - id;
 
     for(;;) {
@@ -46,7 +46,8 @@ int insert(const Node* root, const char* id, const int size, const int score) {
             if (NULL == root->right) {
                 new_node(id, size, score);
                 return 2;
-            } else root = root->right;
+            }
+            root = root->right;
         } else if (NULL == root->left) {
             new_node(id, size, score);
             return 2;

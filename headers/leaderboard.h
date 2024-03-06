@@ -16,10 +16,10 @@ typedef struct Node {
 
 Node* parent(Node* src, const char* val, const char* parent_id);
 
-Node* tr_search(const int score, const char* id, Node* src);
+Node* tr_search(int score, const char* id, Node* src);
 
-void new_node (char* id, const int size, const int score);
+void new_node (char* id, int size, int score);
 
-int insert(const Node* root, const char* id, const int size, const int score);
+int lb_insert(const Node* root, char* id, int size, int score);
 
 #endif //LEADERBOARD_H
