@@ -1,27 +1,20 @@
 #include <stdio.h>
+#include <string.h>
 
-// #include "headers/player.h"
-// #include "headers/leaderboard.h"
+#include "headers/error_handling.h"
 #include "headers/id_generation.h"
-
-/*
-    int ranking(const int score, const char* id) {
-        Node* x = tr_search(score, id, root);
-        if (x->id == 0) return -1;
-
-        int r = x->right->size + 1;
-        Node* y = x;
-
-        while (y != root) {
-            Node* parent_node = parent(y, r, -1);
-            if (y == parent_node->left) r += parent_node->right->size + 1;
-            y = parent_node;
-        }
-        return r;
-    }
-*/
+#include "headers/player_pool.h"
 
 int main(void) {
-    printf(generate_uuid());
+    PlayerPool* player_pool = create_pool(2);
+
+    for (int i = 0; i < player_pool->size; i++) {
+        char player_name[30];
+        printf("Inserisci il nome del giocatore: \n");
+        const int ret_value = scanf("%s", player_name);
+        if (ret_value < 0) handle_error("STDIN_ERR");
+        pp_insert(player_pool, generate_uuid(), player_name);
+    }
+    print_table(player_pool);
     return 0;
 }

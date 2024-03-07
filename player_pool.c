@@ -43,6 +43,7 @@ void print_table(const PlayerPool* table) {
 }
 
 void pp_insert(PlayerPool* table, const char* key, const char* value) {
+    printf("Inserting player in table with id %s and name %s\n", key, value);
     Player* item = create_player(key, value);
     const int index = hash_function(key);
     const Player* current_item = table->players[index];
@@ -91,7 +92,7 @@ void delete(PlayerPool* table, const char* key) {
                 if (strcmp(curr->item->id, key) == 0) {
                     free_linkedlist(head);
                     table->overflow_buckets[index] = NULL;
-                } else {
+                } else if (prev != NULL) {
                     prev->next = curr->next;
                     curr->next = NULL;
                     free_linkedlist(curr);

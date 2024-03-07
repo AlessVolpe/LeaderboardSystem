@@ -54,3 +54,20 @@ int lb_insert(const Node* root, char* id, const int size, const int score) {
         } else root = root->left;
     }
 }
+
+int ranking(const int score, const char* id) {
+    Node* x = tr_search(score, id, root);
+    if (x->id == 0) return -1;
+
+    Node* y = x;
+    int r = x->right->size + 1;
+    while (y != root) {
+        char char_arr[100];
+        sprintf(char_arr, "%d", r);
+
+        Node* parent_node = parent(y, char_arr, "-1");
+        if (y == parent_node->left) r += parent_node->right->size + 1;
+        y = parent_node;
+    }
+    return r;
+}
