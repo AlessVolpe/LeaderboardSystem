@@ -1,20 +1,16 @@
-cmake_minimum_required(VERSION 3.28)
-project(leaderboardsystem C)
+cmake_minimum_required(VERSION 3.5)
+project(leaderboardsystem VERSION 2.0.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(leaderboardsystem main.c
-        headers/player.h
-        headers/leaderboard.h
-        headers/error_handling.h
-        headers/player_pool.h
-        headers/linked_list.h
-        headers/overflow.h
-        headers/id_generation.h
-        id_generation.c
-        player_pool.c
-        player.c
-        overflow.c
-        linked_list.c
-        leaderboard.c
+add_executable(leaderboardsystem
+        src/commons.c
+        src/hashmap.c
+        include/commons.h
+        include/hashmap.h
+        include/hashmap_base.h
+        main.c
 )
+
+target_include_directories(leaderboardsystem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(leaderboardsystem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

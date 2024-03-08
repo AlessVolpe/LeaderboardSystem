@@ -1,10 +1,8 @@
 //
-// Created by aless on 06/03/2024.
+// Created by aless on 08/03/2024.
 //
 
-#include "headers/id_generation.h"
-
-#include <stdlib.h>
+#include "commons.h"
 
 char* generate_uuid() {
     const char v[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
@@ -17,4 +15,10 @@ char* generate_uuid() {
     buf[23] = '-';
     buf[36] = '\0';
     return buf;
+}
+
+DWORD WINAPI thread_routine(LPVOID lpArg) {
+    const int a = *(int *)lpArg;
+    fprintf(stderr,"My argument is %d\n",a);
+    return 0;
 }
