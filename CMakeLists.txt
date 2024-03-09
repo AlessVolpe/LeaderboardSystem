@@ -10,6 +10,8 @@ add_executable(leaderboardsystem
         include/hashmap.h
         include/hashmap_base.h
         main.c
+        src/bostree.c
+        include/bostree.h
 )
 
 target_include_directories(leaderboardsystem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
