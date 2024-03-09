@@ -17,7 +17,7 @@ char* generate_uuid() {
     return buf;
 }
 
-DWORD WINAPI thread_routine(LPVOID lpArg) {
+DWORD WINAPI thread_routine(const LPVOID lpArg) {
     const int a = *(int *)lpArg;
     fprintf(stderr,"My argument is %d\n",a);
     return 0;
