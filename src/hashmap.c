@@ -8,6 +8,7 @@
 
 #include "commons.h"
 #include "hashmap_base.h"
+#include "../../../AppData/Local/Programs/CLion Nova/bin/mingw/x86_64-w64-mingw32/include/stdint.h"
 
 #define HASHMAP_SIZE_MIN                32
 #define HASHMAP_SIZE_DEFAULT            128
@@ -320,4 +321,158 @@ bool hashmap_base_iter_valid(const hashmap_base* hb, const hashmap_entry* iter) 
 bool hashmap_base_iter_next(const hashmap_base* hb, hashmap_entry** iter) {
     if (*iter == NULL) return false;
     return (*iter = hashmap_entry_get_populated(hb, *iter + 1)) != NULL;
+}
+
+/*
+ * Remove the hashmap entry pointed to by this iterator and advance the
+ * iterator to the next entry.
+ * Returns true if the iterator is valid after the operation.
+ */
+bool hashmap_base_iter_remove(hashmap_base* hb, hashmap_entry** iter) {
+    if (*iter == NULL) return false;
+    if ((*iter)->key) hashmap_entry_remove(hb, *iter); // remove entry if iterator is valid
+    return (*iter = hashmap_entry_get_populated(hb, *iter)) != NULL;
+}
+
+/*
+ * Return the key of the entry pointed to by the iterator.
+ */
+const void* hashmap_base_iter_get_key(const hashmap_entry* iter) {
+    if (iter == NULL) return NULL;
+    return iter->key;
+}
+
+/*
+ * Return the data of the entry pointed to by the iterator.
+ */
+void* hashmap_base_iter_get_data(const hashmap_entry* iter) {
+    if (iter == NULL) return NULL;
+    return iter->data;
+}
+
+/*
+ * Set the data pointer of the entry pointed to by the iterator.
+ */
+int hashmap_base_iter_set_data(hashmap_entry* iter, void* data) {
+    ERROR_RETURN(iter == NULL, -EFAULT, "ITER_SET_DATA_ERR: iterator not valid");
+    ERROR_RETURN(iter == NULL, -EINVAL, "ITER_SET_DATA_ERR: data not valid");
+    iter->data = data;
+    return 0;
+}
+
+/*
+ * Return the load factor.
+ */
+double hashmap_base_load_factor(const hashmap_base* hb) {
+    if (!hb->table_size) return 0;
+    return (double)hb->size / hb->table_size;
+}
+
+/*
+ * Return the number of collisions for this key.
+ * This would always be 0 if a perfect hash function was used, but in ordinary
+ * usage, there may be a few collisions, depending on the hash function and
+ * load factor.
+ */
+size_t hashmap_base_collisions(const hashmap_base* hb, const void* key) {
+    size_t i;
+    if (key == NULL) return 0;
+    size_t index = hashmap_calc_index(hb, key);
+
+    // linear probing
+    for (i = 0; i < hb->table_size; ++i) {
+        const hashmap_entry* entry = &hb->table[index];
+        if (entry->key == NULL) return 0; // key does not exist
+        if (hb->compare(key, entry->key) == 0) break;
+        index = HASHMAP_PROBE_NEXT(hb, index);
+    }
+    return i;
+}
+
+
+/*
+ * Return the average number of collisions per entry.
+ */
+double hashmap_base_collisions_mean(const hashmap_base* hb) {
+    size_t tot_collisions = 0;
+    if (!hb->size) return 0;
+
+    for (const hashmap_entry* entry = hb->table; entry < &hb->table[hb->table_size]; ++entry) {
+        if (entry->key == NULL) continue;
+        tot_collisions += hashmap_base_collisions(hb, entry->key);
+    }
+    return (double)tot_collisions / hb->size;
+}
+
+
+/*
+ * Return the variance between entry collisions. The higher the variance,
+ * the more likely the hash function is poor and is resulting in clustering.
+ */
+double hashmap_base_collisions_variance(const hashmap_base* hb) {
+    double tot_variance = 0;
+    if (!hb->size) return 0;
+    const double avg_collisions = hashmap_base_collisions_mean(hb);
+
+    for (const hashmap_entry* entry = hb->table; entry < &hb->table[hb->table_size]; ++entry) {
+        if (entry->key == NULL) continue;
+        const double variance = (double)hashmap_base_collisions(hb, entry->key) - avg_collisions;
+        tot_variance += variance * variance;
+    }
+    return tot_variance / hb->size;
+}
+
+/*
+ * Recommended hash function for data keys.
+ *
+ * This is an implementation of the well-documented Jenkins one-at-a-time
+ * hash function. See https://en.wikipedia.org/wiki/Jenkins_hash_function
+ */
+size_t hashmap_hash_default(const void* data, size_t len) {
+    size_t hash = 0;
+    const uint8_t* byte = data;
+
+    for (size_t i = 0; i < len; ++i) {
+        hash += *byte++;
+        hash += hash << 10;
+        hash ^= hash >> 6;
+    }
+    hash += hash << 3;
+    hash ^= hash >> 11;
+    hash += hash << 15;
+    return  hash;
+}
+
+/*
+ * Recommended hash function for string keys.
+ */
+size_t hashmap_hash_string(const char* key) {
+    size_t hash = 0;
+
+    for (; *key; ++key) {
+        hash += *key;
+        hash += hash << 10;
+        hash ^= hash >> 6;
+    }
+    hash += hash << 3;
+    hash ^= hash >> 11;
+    hash += hash << 15;
+    return  hash;
+}
+
+/*
+ * Case insensitive hash function for string keys.
+ */
+size_t hashmap_hash_string_i(const char* key) {
+    size_t hash = 0;
+
+    for (; *key; ++key) {
+        hash += tolower(*key);
+        hash += hash << 10;
+        hash ^= hash >> 6;
+    }
+    hash += hash << 3;
+    hash ^= hash >> 11;
+    hash += hash << 15;
+    return  hash;
 }
