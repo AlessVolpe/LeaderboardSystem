@@ -5,12 +5,12 @@ project, I wanted to experiment with type-safe and efficient data structures
 to implement a ranking algorithm.
 
 The ranking happens in two different moments, when a player is added to the
-system is at first put into a hash map, then when the system needs to compile
+system is at first put into a hashmap, then when the system needs to compile
 the leaderboard every player is moved to a self-balancing AVL tree.
 
-## Player pool or hash map
+## Player pool or hashmap
 
-The player pool is implemented using a hash map, a data structure that maps
+The player pool is implemented using a hashmap, a data structure that maps
 key to value. An index is computed via a hash function h, generically it maps
 the universe U of keys
 
@@ -32,7 +32,7 @@ where the corresponding value is stored: works wonders for our case of study!
 
 I find really important to say thank you for the
 [original implementation](https://github.com/DavidLeeds/hashmap.git) to
-[DavidLeeds](https://github.com/DavidLeeds), from his work I couldn't take his
+[DavidLeeds](https://github.com/DavidLeeds), from his repo I couldn't take his
 amazing work on the CMake files because it didn't fit my use case.
 
 ## Leaderboard or BOSTree
