@@ -3,12 +3,14 @@
 //
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "commons.h"
 #include "hashmap_base.h"
-#include "../../../AppData/Local/Programs/CLion Nova/bin/mingw/x86_64-w64-mingw32/include/stdint.h"
+
 
 #define HASHMAP_SIZE_MIN                32
 #define HASHMAP_SIZE_DEFAULT            128

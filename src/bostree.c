@@ -3,13 +3,14 @@
 //
 
 #include "bostree.h"
+#include "commons.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "commons.h"
+#include <stdint.h>
+#include <fileapi.h>
 
 /*
  * local helper function
@@ -145,7 +146,7 @@ BOSNode* bostree_insert(BOSTree* tree, void* key, void* data) {
         return new_node;
     }
 
-    if (!!(u_int64)parent_node->left_child_node ^ !!(u_int64)parent_node->right_child_node) {
+    if (!!(uint64_t)parent_node->left_child_node ^ !!(uint64_t)parent_node->right_child_node) {
         parent_node->depth++;
         while (parent_node->parent_node) {
             parent_node = parent_node->parent_node;

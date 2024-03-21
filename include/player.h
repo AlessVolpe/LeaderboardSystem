@@ -15,6 +15,6 @@ typedef struct player {
 } player_t;
 
 player_t* player_create(char* name);
-void player_assing_points(player_t* player, uint32_t points);
+void player_adding_points(player_t* player, uint32_t points);
 
 #endif //PLAYER_H

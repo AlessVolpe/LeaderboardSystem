@@ -9,7 +9,6 @@
 
 #define MAX_PLAYERS     10
 #define MIN_PLAYERS     6
-#define MAX_ID_SIZE     32
 
 static int _select_players(void) {
     int n;
@@ -34,8 +33,7 @@ static char** _name_players(const int num) {
 
 static char* _set_player_id(const int counter) {
     char* id = malloc(MAX_ID_SIZE);
-    MTRand seed = seedRand(counter + rand());
-    snprintf(id, sizeof(id), "%u", genRandLong(&seed));
+    snprintf(id, MAX_ID_SIZE, "%s", uuid_generate());
     return id;
 }
 
@@ -61,9 +59,12 @@ int main(int argc, char** argv) {
     }
     free(player_names);
 
+
     // iterate through all players and print each one
     printf("\nFormat: player_name[player_id] with score n\n");
     hashmap_foreach(key, data, &map) {
+        MTRand seed = seedRand(rand());
+        player_adding_points(data, (uint32_t)(genRand(&seed) * 100));
         printf("Player: %s[%s] with score %d\n", data->name, key, data->score);
     }
 

@@ -5,7 +5,6 @@
 #ifndef HASHMAP_BASE_H
 #define HASHMAP_BASE_H
 #include <stdbool.h>
-#include <stddef.h>
 
 typedef struct hashmap_entry {
     void* key;

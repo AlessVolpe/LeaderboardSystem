@@ -14,6 +14,7 @@ add_executable(leaderboardsystem
         src/mtwister.c
         include/player.h
         src/player.c
+        src/commons.c
 )
 
 target_include_directories(leaderboardsystem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -13,6 +13,6 @@ player_t* player_create(char* name) {
     return player;
 }
 
-void player_assing_points(player_t* player, uint32_t points) {
+void player_adding_points(player_t* player, const uint32_t points) {
     player->score += points;
 }
