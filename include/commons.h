@@ -32,8 +32,4 @@
 
 #define ERROR_HELPER(ret, msg) GENERIC_ERROR_HELPER((ret < 0), errno, msg)
 
-char* generate_uuid();
-
-DWORD WINAPI thread_routine(LPVOID lpArg);
-
 #endif //ERROR_HANDLING_H

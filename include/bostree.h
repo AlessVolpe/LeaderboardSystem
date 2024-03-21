@@ -34,9 +34,9 @@ typedef struct _BOSTree {
 
 
 BOSTree* bostree_new(BOSTree_cmp_func cmp_func, BOSTree_free_func free_func);
-void bostree_destroy(const BOSTree* tree);
+void bostree_destroy(BOSTree* tree);
 
-unsigned int bostree_node_count(BOSTree* tree);
+unsigned int bostree_node_count(const BOSTree* tree);
 BOSNode* bostree_insert(BOSTree* tree, void* key, void* data);
 void bostree_remove(BOSTree* tree, BOSNode* node);
 BOSNode* bostree_node_weak_ref(BOSNode* node);

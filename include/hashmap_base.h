@@ -33,9 +33,9 @@ void hashmap_base_set_key_alloc_funcs(hashmap_base* hb,
 
 int hashmap_base_reserve(hashmap_base* hb, size_t capacity);
 
-int hashmap_base_put(hashmap_base* hb, const void* key, void* data);
+int hashmap_base_put(hashmap_base* hb, const void* key, const void* data);
 void* hashmap_base_get(const hashmap_base* hb, const void* key);
-void* hashmap_base_remove(hashmap_base* hb, const void* key);
+void* hahsmap_base_remove(hashmap_base* hb, const void* key);
 
 void hashmap_base_clear(hashmap_base* hb);
 void hashmap_base_reset(hashmap_base* hb);

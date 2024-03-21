@@ -145,7 +145,7 @@ BOSNode* bostree_insert(BOSTree* tree, void* key, void* data) {
         return new_node;
     }
 
-    if (!!(int)parent_node->left_child_node ^ !!(int)parent_node->right_child_node) {
+    if (!!(u_int64)parent_node->left_child_node ^ !!(u_int64)parent_node->right_child_node) {
         parent_node->depth++;
         while (parent_node->parent_node) {
             parent_node = parent_node->parent_node;

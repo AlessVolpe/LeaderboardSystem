@@ -144,9 +144,7 @@ static int hashmap_rehash(hashmap_base* hb, const size_t table_size) {
  * Iterate through all entries and free all keys.
  */
 static void hashmap_free_keys(const hashmap_base* hb) {
-    GENERIC_ERROR_HELPER((hb->key_free == NULL || hb->size == 0),
-        errno, "FREE_KEYS_ERR: full hashmap or no keys to free");
-
+    if (hb->key_free == NULL || hb->size == 0) return;
     for (const hashmap_entry* entry = hb->table; entry < &hb->table[hb->table_size]; ++entry)
         if (entry->key) hb->key_free(entry->key);
 }
@@ -186,7 +184,8 @@ void hashmap_base_cleanup(hashmap_base* hb) {
 /*
  * Enable internal memory management of hash keys.
  */
-void hashmap_base_set_alloc_funcs(hashmap_base* hb, void* (*key_dup_func)(const void*), void (*key_free_func)(void*)) {
+void hashmap_base_set_key_alloc_funcs(hashmap_base* hb,
+    void* (*key_dup_func)(const void*), void (*key_free_func)(void*)) {
     hb->key_dup = key_dup_func;
     hb->key_free = key_free_func;
 }
@@ -226,7 +225,7 @@ int hashmap_base_put(hashmap_base* hb, const void* key, const void* data) {
 
     // get the entry for this key
     hashmap_entry* entry = hashmap_entry_find(hb, key, true);
-    ERROR_RETURN((entry != NULL), -EADDRNOTAVAIL, "PUT_ERR: memory address not valid");
+    ERROR_RETURN((entry == NULL), -EADDRNOTAVAIL, "PUT_ERR: memory address not valid");
     if (r < 0) return r; // rehash error
 
     ERROR_RETURN(entry->key, -EEXIST, "PUT_ERR: key already exists");

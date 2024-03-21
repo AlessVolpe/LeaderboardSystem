@@ -5,20 +5,27 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stddef.h>
+#include "hashmap_base.h"
+
 /*
  * INTERNAL USE ONLY
  */
 #define __HASHMAP_ITER_RESET(iter) ({                                                                       \
-    ((iter)->iter_pos = hashmap_base_iter((iter)->iter_map, (iter)->iter_pos))                              \
+    ((iter)->iter_pos = hashmap_base_iter((iter)->iter_map, (iter)->iter_pos));                             \
 })
 
 #define __HASHMAP_CONCAT_2(x, y) x ## y
 #define __HASHMAP_CONCAT(x, y) __HASHMAP_CONCAT_2(x, y)
-#define __HASHMAP_MAKE_UNIQUE(prefix) __HASHMAP_CONCAT(__HASHMAP_CONCAT(prefix, __COUNTER__))
+#define __HASHMAP_MAKE_UNIQUE(prefix) __HASHMAP_CONCAT(__HASHMAP_CONCAT(prefix, __COUNTER__),  _)
 #define __HASHMAP_UNIQUE(unique, name) __HASHMAP_CONCAT(unique, name)
 
 #define __HASHMAP_FOREACH(x, key, data, h)                                                                  \
-    for (HASHMAP_ITER(*(h)) __HASHMAP_UNIQUE(x, it) = hashmap_iter(h)                                       \
+    for (HASHMAP_ITER(*(h)) __HASHMAP_UNIQUE(x, it) = hashmap_iter(h);                                      \
         ((key) = hashmap_iter_get_key(&__HASHMAP_UNIQUE(x, it))) &&                                         \
             ((data) = hashmap_iter_get_data(&__HASHMAP_UNIQUE(x, it)));                                     \
     hashmap_iter_next(&__HASHMAP_UNIQUE(x, it)))
@@ -215,7 +222,7 @@
  */
 #define hashmap_remove(h, key) ({                                                                       \
     typeof((h)->map_types->t_key) __map_key = (key);                                                    \
-    (typeof((h)->map_types->t_data))hashmap_base_remove(&(h)->map_base, (const void*)__map_key);        \
+    (typeof((h)->map_types->t_data))hahsmap_base_remove(&(h)->map_base, (const void*)__map_key);        \
 })
 
 /*
@@ -416,5 +423,9 @@
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
 #define hashmap_collisions_variance(h) hashmap_base_collisions_variance(&(h)->map_base)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //HASHMAP_H
