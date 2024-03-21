@@ -5,11 +5,11 @@
 #include "hashmap.h"
 #include "hashmap_base.h"
 #include "mtwister.h"
+#include "player.h"
 
 #define MAX_PLAYERS     10
 #define MIN_PLAYERS     6
 #define MAX_ID_SIZE     32
-#define MAX_NAME_SIZE   25
 
 static int _select_players(void) {
     int n;
@@ -41,12 +41,12 @@ static char* _set_player_id(const int counter) {
 
 int main(int argc, char** argv) {
     const int player_num = _select_players();
-    const char** player_names = _name_players(player_num);
+    char** player_names = _name_players(player_num);
 
     // declare type-specific hashmap structure
-    HASHMAP(char, char) map;
+    HASHMAP(char, player_t) map;
     char* key;
-    char* data;
+    player_t* data;
 
     // initialize with default string key hash function and comparator
     hashmap_init(&map, hashmap_hash_string, strcmp);
@@ -54,16 +54,17 @@ int main(int argc, char** argv) {
     // load players into the map and discard duplicates
     for (int i = 0; i < player_num; i++) {
         char* player_id = _set_player_id(i);
-        const int ret = hashmap_put(&map, player_id, player_names[i]);
-        printf("putting player %s[%s] success!\n", player_names[i], player_id);
-        if (ret < 0) printf("putting player %s[%s] failed: %s\n", player_names[i], player_id, strerror(-ret));
+        player_t* player = player_create(player_names[i]);
+        const int ret = hashmap_put(&map, player_id, player);
+        printf("putting player %s[%s] success!\n", player->name, player_id);
+        if (ret < 0) printf("putting player %s[%s] failed: %s\n", player->name, player_id, strerror(-ret));
     }
     free(player_names);
 
     // iterate through all players and print each one
-    printf("\nFormat: player_name[player_id]\n");
+    printf("\nFormat: player_name[player_id] with score n\n");
     hashmap_foreach(key, data, &map) {
-        printf("Player: %s[%s]\n", data, key);
+        printf("Player: %s[%s] with score %d\n", data->name, key, data->score);
     }
 
     // destruct the hashmap

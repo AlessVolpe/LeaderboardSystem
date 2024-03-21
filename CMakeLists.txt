@@ -12,6 +12,8 @@ add_executable(leaderboardsystem
         include/bostree.h
         include/mtwister.h
         src/mtwister.c
+        include/player.h
+        src/player.c
 )
 
 target_include_directories(leaderboardsystem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
