@@ -67,6 +67,9 @@ Again it's really important to me to thank also
 testing both on AFL and Valgrind.
 
 ## Player id generation
+
+### A PRNG better than rand()
+
 One of the challenges to overcome, it was having unique ids for the players, 
 and as most of us know c's ```rand()``` function isn't really cut for 
 greatness.
@@ -74,7 +77,7 @@ greatness.
 srand(time(NULL))
 rand() // sorry little man
 ```
-On stackoverflow some guy, 7 years ago, decided to ask about PRNGs for his fractal
+On Stack Overflow some guy, 7 years ago, decided to ask about PRNGs for his fractal
 flame generator, with the sequent requirements:
 - It should produce relatively high quality streams of random numbers
 - Its period should be over ten billion
@@ -89,9 +92,16 @@ The most common version of the algorithm is based on the Mersenne prime ```(2^19
 I have to thank [ESultankik](https://github.com/ESultanik) for the first adaptation of the 
 pseudocode in: M. Matsumoto and T. Nishimura, "Mersenne Twister: A 623-dimensionally 
 equidistributed uniform pseudorandom number generator," ACM transactions on Modeling and 
-Computer Simulation Vol. 8, No. 1, January pp.3-30 1998. I took the time to fix the Issue #3 in his code and changed the types to accurately sized
-ones, mainly ```unsigned long``` to ```uint32_t``` and secondly ```int``` to ```int32_t```
-both found in ```stdint.h```.
+Computer Simulation Vol. 8, No. 1, January pp.3-30 1998. I took the time to fix the Issue #3 
+in his code and changed the types to accurately sized ones, mainly ```unsigned long``` to 
+```uint32_t``` and secondly ```int``` to ```int32_t``` both found in ```stdint.h```.
+
+### GUID generation
+
+After tackling the randomized part of the GUID generation I had to search for a simple, really 
+not elegant, yet effective solution. Stack Overflow is a saving grace. I slightly improved the
+original implementation that was posted over 10 years ago (and yet I was already coding...)
+giving it a slight (really slight) elegance, but it works it's all I need.
 
 ## A really simple drawing
 
