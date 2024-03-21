@@ -66,6 +66,33 @@ Again it's really important to me to thank also
 [original implementation](https://github.com/phillipberndt/bostree.git) and
 testing both on AFL and Valgrind.
 
+## Player id generation
+One of the challenges to overcome, it was having unique ids for the players, 
+and as most of us know c's ```rand()``` function isn't really cut for 
+greatness.
+```c++
+srand(time(NULL))
+rand() // sorry little man
+```
+On stackoverflow some guy, 7 years ago, decided to ask about PRNGs for his fractal
+flame generator, with the sequent requirements:
+- It should produce relatively high quality streams of random numbers
+- Its period should be over ten billion
+- It should be fast enough and offer a good performance trade-off.
+
+The best answer suggested the Mersenne Twister, a PRNG developed by Makoto Matsumoto
+and Takuji Nishimura in 1997. Generally faster than many older PRNGs, like ```rand()```
+(rip), it was designed specifically to rectify flaws found in those PRNGs.
+The most common version of the algorithm is based on the Mersenne prime ```(2^19937)-1```
+(yikes!), and its standard implementation MT19937 uses a 32-bt word length.
+
+I have to thank [ESultankik](https://github.com/ESultanik) for the first adaptation of the 
+pseudocode in: M. Matsumoto and T. Nishimura, "Mersenne Twister: A 623-dimensionally 
+equidistributed uniform pseudorandom number generator," ACM transactions on Modeling and 
+Computer Simulation Vol. 8, No. 1, January pp.3-30 1998. I took the time to fix the Issue #3 in his code and changed the types to accurately sized
+ones, mainly ```unsigned long``` to ```uint32_t``` and secondly ```int``` to ```int32_t```
+both found in ```stdint.h```.
+
 ## A really simple drawing
 
 ```mermaid
