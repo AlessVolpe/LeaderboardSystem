@@ -26,6 +26,7 @@ static void m_seedRand(MTRand* rand, const uint32_t seed) {
 
 /*
  * creates a new random number generator from a given seed
+ * TODO: fix memory leaks
  */
 MTRand* seedRand(const uint32_t seed) {
     MTRand* rand = malloc(sizeof(MTRand));

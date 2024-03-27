@@ -8,6 +8,9 @@
 #include "commons.h"
 #include "mtwister.h"
 
+/*
+ * TODO: fix memory leaks
+ */
 char* uuid_generate(void) {
     char* GUID = malloc(MAX_ID_SIZE);
     MTRand* seed = seedRand(clock());

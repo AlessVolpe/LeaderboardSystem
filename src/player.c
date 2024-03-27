@@ -6,6 +6,9 @@
 
 #include "player.h"
 
+/*
+ * TODO: fix memory leaks
+*/
 player_t* player_create(char* name) {
     player_t* player = calloc(1, sizeof(player_t));
     player->name = name;

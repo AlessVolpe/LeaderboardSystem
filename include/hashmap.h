@@ -94,7 +94,6 @@ extern "C" {
         } map_types[0];                                                                                     \
     }
 
-
 /*
  * Template macro to define a hashmap iterator.
  *

@@ -35,6 +35,9 @@ static char** _name_players(const int num) {
     return names;
 }
 
+/*
+ * TODO: fix memory leaks
+ */
 static char* _set_player_id() {
     char* id = malloc(MAX_ID_SIZE);
     snprintf(id, MAX_ID_SIZE, "%s", uuid_generate());
