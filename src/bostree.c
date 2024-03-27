@@ -126,7 +126,7 @@ BOSNode* bostree_insert(BOSTree* tree, void* key, void* data) {
     BOSNode** node = &tree->root_node;
     BOSNode* parent_node = NULL;
 
-    while  (*node) {
+    while (*node) {
         parent_node = *node;
         const int cmp = tree->cmp_func(key, (*node)->key);
         if (cmp < 0) {
@@ -139,6 +139,12 @@ BOSNode* bostree_insert(BOSTree* tree, void* key, void* data) {
     }
 
     BOSNode* new_node = _bostree_new_node(parent_node, key, data);
+    memset(new_node, 0, sizeof(BOSNode));
+	new_node->key = key;
+	new_node->data = data;
+	new_node->weak_ref_count = 1;
+	new_node->weak_ref_node_valid = 1;
+	new_node->parent_node = parent_node;
     *node = new_node;
 
     if (parent_node == NULL) {

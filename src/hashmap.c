@@ -18,7 +18,6 @@
 
 #define HASHMAP_PROBE_NEXT(map, index)  HASHMAP_SIZE_MOD(map, (index) + 1)
 
-
 /*
 * Calculate the optimal table size, given the specified max number
 * of elements.

@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_PLAYERS     38
+#define MAX_PLAYERS     10
 #define MIN_PLAYERS     5
 #define MAX_ID_SIZE     40
 
