@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <fileapi.h>
+#include <unistd.h>
 
 /*
  * local helper function
@@ -291,7 +291,7 @@ void bostree_print(const BOSTree* tree) {
     printf("digraph {\n  ordering = out;\n");
     _bostree_print_helper(tree->root_node);
     printf("}\n");
-    FlushFileBuffers(0);
+    fsync(0);
 }
 
 #endif

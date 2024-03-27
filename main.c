@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
         free(player_id);
     }
 
-    _free_player_names(player_num, player_names);
+    if (player_names) _free_player_names(player_num, player_names);
 
     // iterate through all players and print each one
     printf("\nFormat: player_name[player_id] with score n\n");

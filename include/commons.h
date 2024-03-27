@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #define MAX_PLAYERS     10
 #define MIN_PLAYERS     5
