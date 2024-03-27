@@ -10,14 +10,14 @@
 
 char* uuid_generate(void) {
     char* GUID = malloc(MAX_ID_SIZE);
-    MTRand seed = seedRand(clock());
+    MTRand* seed = seedRand(clock());
     const char* szTemp = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
 
     const int nLen = strlen(szTemp);
     for (int i = 0; i < nLen + 1; i++) {
         char c = szTemp[i];
         const char* szHex = "0123456789ABCDEF-";
-        const uint32_t mt_num = genRandLong(&seed) % 16;
+        const uint32_t mt_num = genRandLong(seed) % 16;
 
         switch (c) {
             case 'x' : { c = szHex[mt_num]; } break;

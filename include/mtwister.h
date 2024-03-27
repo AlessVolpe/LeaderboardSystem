@@ -11,11 +11,11 @@
 #define STATE_VECTOR_M      397
 
 typedef struct tagMTRand {
-    uint32_t mt[STATE_VECTOR_LENGTH];
+    uint32_t mt[STATE_VECTOR_LENGTH+1];
     int32_t index;
 } MTRand;
 
-MTRand seedRand(uint32_t seed);
+MTRand* seedRand(uint32_t seed);
 uint32_t genRandLong(MTRand* rand);
 double genRand(MTRand* rand);
 

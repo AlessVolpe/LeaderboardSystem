@@ -4,6 +4,8 @@
 
 #include "mtwister.h"
 
+#include <stdlib.h>
+
 #define UPPER_MASK		    0x80000000
 #define LOWER_MASK		    0x7fffffff
 #define TEMPERING_MASK_B	0x9d2c5680
@@ -15,17 +17,19 @@
  * Vol. 2 (2nd Ed.) pp.102.
  */
 static void m_seedRand(MTRand* rand, const uint32_t seed) {
-    rand->mt[0] = seed & 0xffffffff;
-    for (rand->index = 1; rand->index < STATE_VECTOR_LENGTH; rand->index++)
-        rand->mt[rand->index] = 6069 * rand->mt[rand->index-1] & 0xffffffff;
+    if (rand) {
+        rand->mt[0] = seed & 0xffffffff;
+        for (rand->index = 1; rand->index < STATE_VECTOR_LENGTH; rand->index++)
+            rand->mt[rand->index] = 6069 * rand->mt[rand->index-1] & 0xffffffff;
+    }
 }
 
 /*
  * creates a new random number generator from a given seed
  */
-MTRand seedRand(const uint32_t seed) {
-    MTRand rand;
-    m_seedRand(&rand, seed);
+MTRand* seedRand(const uint32_t seed) {
+    MTRand* rand = malloc(sizeof(MTRand));
+    m_seedRand(rand, seed);
     return rand;
 }
 
@@ -37,9 +41,8 @@ uint32_t genRandLong(MTRand* rand) {
     static uint32_t mag[2] = {0x0, 0x9908b0df}; // mag[x] = x * 0x9908b0df for x = 0, 1
     if (rand->index >= STATE_VECTOR_LENGTH || rand->index < 0) {
         // generate STATE_VECTOR_LENGTH words a time
-        int32_t kk;
         if (rand->index >= STATE_VECTOR_LENGTH + 1 || rand->index < 0) m_seedRand(rand, 4357);
-
+        int32_t kk;
         for (kk = 0; kk < STATE_VECTOR_LENGTH - STATE_VECTOR_M; kk++) {
             y = rand->mt[kk] & UPPER_MASK | rand->mt[kk + 1] & LOWER_MASK;
             rand->mt[kk] = rand->mt[kk + STATE_VECTOR_M] ^ y >> 1 ^ mag[y & 0x1];
