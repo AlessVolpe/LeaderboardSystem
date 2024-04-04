@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 
     // declare type-specific hashmap structure and a temp var for safe foreach
     HASHMAP(char, player_t) pool;
-    char* key;
+    const char* key;
     player_t* data;
     // void* temp;
 
