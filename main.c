@@ -1,12 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bostree.h"
-#include "commons.h"
-#include "hashmap.h"
-#include "hashmap_base.h"
-#include "mtwister.h"
-#include "player.h"
+#include "include/bostree.h"
+#include "include/commons.h"
+#include "include/hashmap.h"
+#include "include/hashmap_base.h"
+#include "include/mtwister.h"
+#include "include/player.h"
 
 
 static void _tree_free(const BOSNode* node) {

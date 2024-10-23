@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/home/melk0r_/LeaderboardSystem/build",
+  "command": "/usr/bin/clang  -I/home/melk0r_/LeaderboardSystem/include -I/home/melk0r_/LeaderboardSystem/src  -O0 -g -std=gnu11 -o CMakeFiles/leaderboardsystem.dir/src/hashmap.c.o -c /home/melk0r_/LeaderboardSystem/src/hashmap.c",
+  "file": "/home/melk0r_/LeaderboardSystem/src/hashmap.c"
+},
+{
+  "directory": "/home/melk0r_/LeaderboardSystem/build",
+  "command": "/usr/bin/clang  -I/home/melk0r_/LeaderboardSystem/include -I/home/melk0r_/LeaderboardSystem/src  -O0 -g -std=gnu11 -o CMakeFiles/leaderboardsystem.dir/main.c.o -c /home/melk0r_/LeaderboardSystem/main.c",
+  "file": "/home/melk0r_/LeaderboardSystem/main.c"
+},
+{
+  "directory": "/home/melk0r_/LeaderboardSystem/build",
+  "command": "/usr/bin/clang  -I/home/melk0r_/LeaderboardSystem/include -I/home/melk0r_/LeaderboardSystem/src  -O0 -g -std=gnu11 -o CMakeFiles/leaderboardsystem.dir/src/bostree.c.o -c /home/melk0r_/LeaderboardSystem/src/bostree.c",
+  "file": "/home/melk0r_/LeaderboardSystem/src/bostree.c"
+},
+{
+  "directory": "/home/melk0r_/LeaderboardSystem/build",
+  "command": "/usr/bin/clang  -I/home/melk0r_/LeaderboardSystem/include -I/home/melk0r_/LeaderboardSystem/src  -O0 -g -std=gnu11 -o CMakeFiles/leaderboardsystem.dir/src/mtwister.c.o -c /home/melk0r_/LeaderboardSystem/src/mtwister.c",
+  "file": "/home/melk0r_/LeaderboardSystem/src/mtwister.c"
+},
+{
+  "directory": "/home/melk0r_/LeaderboardSystem/build",
+  "command": "/usr/bin/clang  -I/home/melk0r_/LeaderboardSystem/include -I/home/melk0r_/LeaderboardSystem/src  -O0 -g -std=gnu11 -o CMakeFiles/leaderboardsystem.dir/src/player.c.o -c /home/melk0r_/LeaderboardSystem/src/player.c",
+  "file": "/home/melk0r_/LeaderboardSystem/src/player.c"
+},
+{
+  "directory": "/home/melk0r_/LeaderboardSystem/build",
+  "command": "/usr/bin/clang  -I/home/melk0r_/LeaderboardSystem/include -I/home/melk0r_/LeaderboardSystem/src  -O0 -g -std=gnu11 -o CMakeFiles/leaderboardsystem.dir/src/commons.c.o -c /home/melk0r_/LeaderboardSystem/src/commons.c",
+  "file": "/home/melk0r_/LeaderboardSystem/src/commons.c"
+}
+]

@@ -1,0 +1,1 @@
+/usr/bin/clang  -O0 -g CMakeFiles/leaderboardsystem.dir/src/hashmap.c.o CMakeFiles/leaderboardsystem.dir/main.c.o CMakeFiles/leaderboardsystem.dir/src/bostree.c.o CMakeFiles/leaderboardsystem.dir/src/mtwister.c.o CMakeFiles/leaderboardsystem.dir/src/player.c.o CMakeFiles/leaderboardsystem.dir/src/commons.c.o -o leaderboardsystem 

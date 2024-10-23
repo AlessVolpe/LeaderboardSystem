@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "commons.h": "c",
+        "hashmap.h": "c",
+        "hashmap_base.h": "c",
+        "mtwister.h": "c",
+        "player.h": "c",
+        "bostree.h": "c"
+    }
+}
