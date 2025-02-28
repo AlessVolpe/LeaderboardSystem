@@ -14,15 +14,15 @@ The player pool is implemented using a hashmap, a data structure that maps
 key to value. An index is computed via a hash function h, generically it maps
 the universe U of keys
 
-```
-h: U -> {0, ..., m-1}
+```math
+h: U ⇒ {0, ..., m-1}
 ```
 
 to array indices or slots within
 the table for each
 
-```
-h(x) ∈ 0, ..., m-1 where x ∈ S and m<n
+```math
+h(x) ∈ 0, ..., m-1\text{ for }x ∈ S ∧ m<n
 ```
 
 A well implemented hash map offers constant (linear at worst) time complexity
@@ -53,7 +53,7 @@ store one additional value for the size of the subtree rooted at that node.
 All operation that modify the tree must adjust this information to preserve the
 invariant that
 
-```
+```math
 size[x] = size[left[x]] + size[right[x]] + 1
 ```
 
@@ -70,15 +70,16 @@ testing both on AFL and Valgrind.
 
 ### A PRNG better than rand()
 
-One of the challenges to overcome, it was having unique ids for the players, 
-and as most of us know c's ```rand()``` function isn't really cut for 
-greatness.
+One of the challenges to overcome, it was having unique ids for the players, and as most of us know c's ```rand()``` function isn't really cut for greatness.
+
 ```c++
 srand(time(NULL))
 rand() // sorry little man
 ```
+
 On Stack Overflow some guy, 7 years ago, decided to ask about PRNGs for his fractal
 flame generator, with the sequent requirements:
+
 - It should produce relatively high quality streams of random numbers
 - Its period should be over ten billion
 - It should be fast enough and offer a good performance trade-off.
@@ -89,16 +90,16 @@ and Takuji Nishimura in 1997. Generally faster than many older PRNGs, like ```ra
 The most common version of the algorithm is based on the Mersenne prime ```(2^19937)-1```
 (yikes!), and its standard implementation MT19937 uses a 32-bt word length.
 
-I have to thank [ESultankik](https://github.com/ESultanik) for the first adaptation of the 
-pseudocode in: M. Matsumoto and T. Nishimura, "Mersenne Twister: A 623-dimensionally 
-equidistributed uniform pseudorandom number generator," ACM transactions on Modeling and 
-Computer Simulation Vol. 8, No. 1, January pp.3-30 1998. I took the time to fix the Issue #3 
-in his code and changed the types to accurately sized ones, mainly ```unsigned long``` to 
+I have to thank [ESultankik](https://github.com/ESultanik) for the first adaptation of the
+pseudocode in: M. Matsumoto and T. Nishimura, "Mersenne Twister: A 623-dimensionally
+equidistributed uniform pseudorandom number generator," ACM transactions on Modeling and
+Computer Simulation Vol. 8, No. 1, January pp.3-30 1998. I took the time to fix the Issue #3
+in his code and changed the types to accurately sized ones, mainly ```unsigned long``` to
 ```uint32_t``` and secondly ```int``` to ```int32_t``` both found in ```stdint.h```.
 
 ### GUID generation
 
-After tackling the randomized part of the GUID generation I had to search for a simple, really 
+After tackling the randomized part of the GUID generation I had to search for a simple, really
 not elegant, yet effective solution. Stack Overflow is a saving grace. I slightly improved the
 original implementation that was posted over 10 years ago (and yet I was already coding...)
 giving it a slight (really slight) elegance, but it works it's all I need.
