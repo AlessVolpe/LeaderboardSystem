@@ -291,7 +291,7 @@ void bostree_print(const BOSTree* tree) {
     printf("digraph {\n  ordering = out;\n");
     _bostree_print_helper(tree->root_node);
     printf("}\n");
-    fsync(0);
+    fflush(stdout);
 }
 
 #endif

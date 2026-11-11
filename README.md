@@ -119,3 +119,35 @@ graph LR
         F <--> id1[(Database)]
     end
 ```
+
+## Development: 3.x native engine foundation
+
+The 3.x development line turns the original executable experiment into a reusable native
+library. The current CLI is retained as an example consumer while the data structures are
+stabilized and tested before Fantacalcio-specific domain logic is introduced.
+
+Configure and build a debug version:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+```
+
+Run the test suite:
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+AddressSanitizer and UndefinedBehaviorSanitizer can be enabled on GCC/Clang builds:
+
+```bash
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DLEADERBOARD_ENABLE_SANITIZERS=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+The library target is `leaderboard` (`Leaderboard::leaderboard` inside CMake). The executable
+prototype is now built as `leaderboard_cli` and is intentionally kept separate from the library.
