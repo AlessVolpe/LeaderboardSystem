@@ -33,6 +33,6 @@
 
 #define ERROR_HELPER(ret, msg) GENERIC_ERROR_HELPER((ret < 0), errno, msg)
 
-char* uuid_generate(void);
+char *uuid_generate(void);
 
 #endif //ERROR_HANDLING_H

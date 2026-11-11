@@ -13,50 +13,50 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
 function(leaderboard_apply_dev_options target)
-    if(MSVC)
+    if (MSVC)
         target_compile_options(${target} PRIVATE /W4)
-        if(LEADERBOARD_WARNINGS_AS_ERRORS)
+        if (LEADERBOARD_WARNINGS_AS_ERRORS)
             target_compile_options(${target} PRIVATE /WX)
-        endif()
-    else()
+        endif ()
+    else ()
         target_compile_options(${target} PRIVATE -Wall -Wextra)
-        if(LEADERBOARD_WARNINGS_AS_ERRORS)
+        if (LEADERBOARD_WARNINGS_AS_ERRORS)
             target_compile_options(${target} PRIVATE -Werror)
-        endif()
+        endif ()
 
-        if(LEADERBOARD_ENABLE_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        if (LEADERBOARD_ENABLE_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
             target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
             target_link_options(${target} PRIVATE -fsanitize=address,undefined)
-        endif()
-    endif()
+        endif ()
+    endif ()
 endfunction()
 
 add_library(leaderboard
-    src/hashmap.c
-    src/bostree.c
-    src/mtwister.c
-    src/player.c
-    src/commons.c
+        src/hashmap.c
+        src/bostree.c
+        src/mtwister.c
+        src/player.c
+        src/commons.c
 )
 add_library(Leaderboard::leaderboard ALIAS leaderboard)
 
 set_target_properties(leaderboard PROPERTIES
-    OUTPUT_NAME leaderboard
-    POSITION_INDEPENDENT_CODE ON
+        OUTPUT_NAME leaderboard
+        POSITION_INDEPENDENT_CODE ON
 )
 
 target_include_directories(leaderboard
-    PUBLIC
+        PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 leaderboard_apply_dev_options(leaderboard)
 
 add_executable(leaderboard_cli
-    examples/leaderboard_cli.c
+        examples/leaderboard_cli.c
 )
 target_link_libraries(leaderboard_cli PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(leaderboard_cli)
 
-if(BUILD_TESTING)
+if (BUILD_TESTING)
     add_subdirectory(tests)
-endif()
+endif ()

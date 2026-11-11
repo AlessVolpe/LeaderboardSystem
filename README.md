@@ -45,8 +45,8 @@ The leaderboard is implemented using an order statistic tree,
 a variant of the binary search tree, implemented as self-balancing AVL tree
 with two additional methods:
 
-- Select(i), which finds i'th smallest element;
-- Rank(x), which returns the rank of a given element.
+- Select (i), which finds i'th smallest element;
+- Rank (x), which returns the rank of a given element.
 
 Both of those two methods run in a logarithmic time complexity, which is indeed
 the worst case scenario considering it happens when implemented as a
@@ -72,9 +72,10 @@ testing both on AFL and Valgrind.
 
 ## Player id generation
 
-### A PRNG better than rand()
+### A PRNG better than rand ()
 
-One of the challenges to overcome, it was having unique ids for the players, and as most of us know c's ```rand()``` function isn't really cut for greatness.
+One of the challenges to overcome, it was having unique ids for the players, and as most of us know c's ```rand()```
+function isn't really cut for greatness.
 
 ```c++
 srand(time(NULL))
@@ -158,9 +159,9 @@ prototype is now built as `leaderboard_cli` and is intentionally kept separate f
 
 ### 3.0.1: Build & test foundation
 
-An initial CTest suite provides smoke tests for the hashmap and BOSTree implementations, while GitHub Actions validates 
-builds on Linux/GCC and Windows/MSYS2 UCRT64. Repository tracking rules and development documentation have also been 
-standardized to improve reproducibility and maintainability. This milestone establishes the development and testing 
+An initial CTest suite provides smoke tests for the hashmap and BOSTree implementations, while GitHub Actions validates
+builds on Linux/GCC and Windows/MSYS2 UCRT64. Repository tracking rules and development documentation have also been
+standardized to improve reproducibility and maintainability. This milestone establishes the development and testing
 infrastructure without modifying the underlying data structure algorithms.
 
 ### 3.0.2: Hashmap stabilization
@@ -173,11 +174,11 @@ smoke, regression, and typed-macro tests. BOSTree stabilization is separate.
 
 ### 3.0.3: BOSTree stabilization
 
-The AVL-based order-statistics tree has been stabilized by correcting tree rotations, parent-child relationships, 
-subtree metadata, and rank/select operations. Duplicate-key handling and insertion safety have also been improved to 
+The AVL-based order-statistics tree has been stabilized by correcting tree rotations, parent-child relationships,
+subtree metadata, and rank/select operations. Duplicate-key handling and insertion safety have also been improved to
 preserve structural consistency.
 
-Deterministic regression tests verify AVL balancing, subtree sizes, traversal order, and order-statistics invariants 
-across sequential and randomized insertions. The implementation contracts and validation methodology are documented in 
-[docs/bostree-contract.md](docs/bostree-contract.md). Node deletion and post-deletion rebalancing are deferred to 
+Deterministic regression tests verify AVL balancing, subtree sizes, traversal order, and order-statistics invariants
+across sequential and randomized insertions. The implementation contracts and validation methodology are documented in
+[docs/bostree-contract.md](docs/bostree-contract.md). Node deletion and post-deletion rebalancing are deferred to
 milestone 3.0.4.

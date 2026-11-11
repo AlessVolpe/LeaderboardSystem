@@ -101,8 +101,7 @@ extern "C" {
  *   HASHMAP_ITER(my_hashmap) iter;
  */
 #define HASHMAP_ITER(hashmap_type)                                                                          \
-    typeof((hashmap_type).map_types->t_iterator)                                                            \
-
+    typeof((hashmap_type).map_types->t_iterator)
 /*
  * Initialize an empty hashmap.
  *

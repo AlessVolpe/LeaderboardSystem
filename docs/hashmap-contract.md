@@ -2,8 +2,8 @@
 
 ## Representation and invariants
 
-The implementation uses **open addressing with linear probing** and
-**backward-shift deletion**. The capacity is a power of two and at least 32 once
+The implementation uses **open addressing with linear probing** and **backward-shift deletion**. The capacity is a power
+of two and at least 32 once
 allocated. The table never exceeds a load factor of **0.75**, including after
 a successful insertion. The entry count (`size`) is exactly the number of
 non-null keys. Every inserted key has a non-null value.
@@ -45,11 +45,11 @@ Rehash relocates entries without duplicating or freeing keys or values.
 
 ## Asymptotic costs
 
-| Operation | Expected | Worst case |
-| --- | --- | --- |
-| Insert / lookup / remove | O(1) with a well-distributed hash | O(n) |
-| Rehash | O(n) | O(n²) with adversarially colliding keys |
-| Iteration / clear / reset | O(capacity) | O(capacity) |
+| Operation                 | Expected                          | Worst case                              |
+|---------------------------|-----------------------------------|-----------------------------------------|
+| Insert / lookup / remove  | O(1) with a well-distributed hash | O(n)                                    |
+| Rehash                    | O(n)                              | O(n²) with adversarially colliding keys |
+| Iteration / clear / reset | O(capacity)                       | O(capacity)                             |
 
 A maximum load factor is not a proof of constant-time behavior under
 adversarial collisions. This is a non-cryptographic, non-concurrent hash map.

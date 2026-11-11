@@ -7,7 +7,8 @@
 #include "hashmap.h"
 
 int main(void) {
-    HASHMAP(char, int) map;
+    HASHMAP(char, int)
+    map;
     int value = 42;
 
     hashmap_init(&map, hashmap_hash_string, strcmp);

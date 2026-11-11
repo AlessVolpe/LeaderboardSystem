@@ -16,11 +16,11 @@
  * illustrated at Line 25 of Table 1 in Donald Knuth's "The Art of Computer Programming"
  * Vol. 2 (2nd Ed.) pp.102.
  */
-static void m_seedRand(MTRand* rand, const uint32_t seed) {
+static void m_seedRand(MTRand *rand, const uint32_t seed) {
     if (rand) {
         rand->mt[0] = seed & 0xffffffff;
         for (rand->index = 1; rand->index < STATE_VECTOR_LENGTH; rand->index++)
-            rand->mt[rand->index] = 6069 * rand->mt[rand->index-1] & 0xffffffff;
+            rand->mt[rand->index] = 6069 * rand->mt[rand->index - 1] & 0xffffffff;
     }
 }
 
@@ -28,8 +28,8 @@ static void m_seedRand(MTRand* rand, const uint32_t seed) {
  * creates a new random number generator from a given seed
  * TODO: fix memory leaks
  */
-MTRand* seedRand(const uint32_t seed) {
-    MTRand* rand = malloc(sizeof(MTRand));
+MTRand *seedRand(const uint32_t seed) {
+    MTRand *rand = malloc(sizeof(MTRand));
     m_seedRand(rand, seed);
     return rand;
 }
@@ -37,7 +37,7 @@ MTRand* seedRand(const uint32_t seed) {
 /*
  * generates a pseudo-random 32-bit integer
  */
-uint32_t genRandLong(MTRand* rand) {
+uint32_t genRandLong(MTRand *rand) {
     uint32_t y;
     static uint32_t mag[2] = {0x0, 0x9908b0df}; // mag[x] = x * 0x9908b0df for x = 0, 1
     if (rand->index >= STATE_VECTOR_LENGTH || rand->index < 0) {
@@ -50,7 +50,7 @@ uint32_t genRandLong(MTRand* rand) {
         }
 
         for (; kk < STATE_VECTOR_LENGTH; kk++) {
-            y = rand->mt[kk]& UPPER_MASK | rand->mt[kk + 1] & LOWER_MASK;
+            y = rand->mt[kk] & UPPER_MASK | rand->mt[kk + 1] & LOWER_MASK;
             rand->mt[kk] = rand->mt[kk + (STATE_VECTOR_M - STATE_VECTOR_LENGTH)] ^ y >> 1 ^ mag[y & 0x1];
         }
         y = rand->mt[STATE_VECTOR_LENGTH - 1] & UPPER_MASK | rand->mt[0] & LOWER_MASK;
@@ -69,6 +69,6 @@ uint32_t genRandLong(MTRand* rand) {
 /*
  * generates a pseudo random double in the range [0, 1]
  */
-double genRand(MTRand* rand) {
-    return (double)genRandLong(rand) / 0xffffffff;
+double genRand(MTRand *rand) {
+    return (double) genRandLong(rand) / 0xffffffff;
 }

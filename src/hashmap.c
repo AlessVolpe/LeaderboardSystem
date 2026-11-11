@@ -82,9 +82,12 @@ static void free_owned_keys(const hashmap_base *hb) {
 
 /* Preserve lookup correctness when deleting an entry from a probe cluster. */
 static void erase_slot(hashmap_base *hb, hashmap_entry *entry) {
-    size_t hole = (size_t)(entry - hb->table);
+    size_t hole = (size_t) (entry - hb->table);
     if (hb->key_free != NULL) hb->key_free(entry->key);
-    *entry = (hashmap_entry){0};
+    *entry = (hashmap_entry)
+    {
+        0
+    };
     --hb->size;
 
     size_t index = next_slot(hb, hole);
@@ -94,15 +97,18 @@ static void erase_slot(hashmap_base *hb, hashmap_entry *entry) {
         size_t index_distance = (index - home) & (hb->table_size - 1u);
         if (hole_distance < index_distance) {
             hb->table[hole] = hb->table[index];
-            hb->table[index] = (hashmap_entry){0};
+            hb->table[index] = (hashmap_entry)
+            {
+                0
+            };
             hole = index;
         }
         index = next_slot(hb, index);
     }
 }
 
-void hashmap_base_init(hashmap_base *hb, size_t (*hash_func)(const void *),
-                       int (*compare_func)(const void *, const void *)) {
+void hashmap_base_init(hashmap_base * hb, size_t(*hash_func)(const void *),
+                       int(*compare_func)(const void *, const void *)) {
     assert(hb && hash_func && compare_func);
     memset(hb, 0, sizeof(*hb));
     hb->table_size_init = HASHMAP_SIZE_DEFAULT;
@@ -117,9 +123,9 @@ void hashmap_base_cleanup(hashmap_base *hb) {
     memset(hb, 0, sizeof(*hb));
 }
 
-int hashmap_base_set_key_alloc_funcs(hashmap_base *hb,
+int hashmap_base_set_key_alloc_funcs(hashmap_base * hb,
                                      void *(*key_dup_func)(const void *),
-                                     void (*key_free_func)(void *)) {
+                                     void(*key_free_func)(void *)) {
     if (hb == NULL || ((key_dup_func == NULL) != (key_free_func == NULL))) return -EINVAL;
     if (hb->size != 0) return -EBUSY;
     hb->key_dup = key_dup_func;
@@ -155,10 +161,10 @@ int hashmap_base_put(hashmap_base *hb, const void *key, const void *data) {
 
     hashmap_entry *slot = find_slot(hb, key, true);
     if (slot == NULL) return -ENOSPC;
-    void *stored_key = hb->key_dup == NULL ? (void *)key : hb->key_dup(key);
+    void *stored_key = hb->key_dup == NULL ? (void *) key : hb->key_dup(key);
     if (stored_key == NULL) return -ENOMEM;
     slot->key = stored_key;
-    slot->data = (void *)data;
+    slot->data = (void *) data;
     ++hb->size;
     return 0;
 }
@@ -205,7 +211,7 @@ void hashmap_base_reset(hashmap_base *hb) {
 static hashmap_entry *next_populated(const hashmap_base *hb, const hashmap_entry *start) {
     if (hb == NULL || hb->size == 0 || hb->table == NULL) return NULL;
     for (const hashmap_entry *entry = start; entry < hb->table + hb->table_size; ++entry) {
-        if (entry->key != NULL) return (hashmap_entry *)entry;
+        if (entry->key != NULL) return (hashmap_entry *) entry;
     }
     return NULL;
 }
@@ -218,8 +224,8 @@ hashmap_entry *hashmap_base_iter(const hashmap_base *hb, const hashmap_entry *po
 bool hashmap_base_iter_valid(const hashmap_base *hb, const hashmap_entry *iter) {
     if (hb == NULL || hb->table == NULL || iter == NULL) return false;
     /* uintptr_t avoids undefined relational comparisons between unrelated objects. */
-    uintptr_t first = (uintptr_t)hb->table;
-    uintptr_t addr = (uintptr_t)iter;
+    uintptr_t first = (uintptr_t) hb->table;
+    uintptr_t addr = (uintptr_t) iter;
     if (addr < first || addr - first >= hb->table_size * sizeof(*hb->table)) return false;
     if ((addr - first) % sizeof(*hb->table) != 0) return false;
     return iter->key != NULL;
@@ -255,7 +261,7 @@ int hashmap_base_iter_set_data(hashmap_entry *iter, void *data) {
 }
 
 double hashmap_base_load_factor(const hashmap_base *hb) {
-    return hb == NULL || hb->table_size == 0 ? 0.0 : (double)hb->size / (double)hb->table_size;
+    return hb == NULL || hb->table_size == 0 ? 0.0 : (double) hb->size / (double) hb->table_size;
 }
 
 size_t hashmap_base_collisions(const hashmap_base *hb, const void *key) {
@@ -274,9 +280,9 @@ double hashmap_base_collisions_mean(const hashmap_base *hb) {
     if (hb == NULL || hb->size == 0) return 0.0;
     double total = 0.0;
     for (size_t i = 0; i < hb->table_size; ++i) {
-        if (hb->table[i].key != NULL) total += (double)hashmap_base_collisions(hb, hb->table[i].key);
+        if (hb->table[i].key != NULL) total += (double) hashmap_base_collisions(hb, hb->table[i].key);
     }
-    return total / (double)hb->size;
+    return total / (double) hb->size;
 }
 
 double hashmap_base_collisions_variance(const hashmap_base *hb) {
@@ -285,17 +291,17 @@ double hashmap_base_collisions_variance(const hashmap_base *hb) {
     double total = 0.0;
     for (size_t i = 0; i < hb->table_size; ++i) {
         if (hb->table[i].key != NULL) {
-            double deviation = (double)hashmap_base_collisions(hb, hb->table[i].key) - mean;
+            double deviation = (double) hashmap_base_collisions(hb, hb->table[i].key) - mean;
             total += deviation * deviation;
         }
     }
-    return total / (double)hb->size;
+    return total / (double) hb->size;
 }
 
 /* Jenkins one-at-a-time hash, preserving the original size_t arithmetic. */
 size_t hashmap_hash_default(const void *data, size_t length) {
     size_t hash = 0;
-    const unsigned char *byte = (const unsigned char *)data;
+    const unsigned char *byte = (const unsigned char *) data;
     for (size_t i = 0; i < length; ++i) {
         hash += byte[i];
         hash += hash << 10;
@@ -309,7 +315,7 @@ size_t hashmap_hash_default(const void *data, size_t length) {
 
 size_t hashmap_hash_string(const char *key) {
     size_t hash = 0;
-    for (const unsigned char *c = (const unsigned char *)key; *c != 0; ++c) {
+    for (const unsigned char *c = (const unsigned char *) key; *c != 0; ++c) {
         hash += *c;
         hash += hash << 10;
         hash ^= hash >> 6;
@@ -322,8 +328,8 @@ size_t hashmap_hash_string(const char *key) {
 
 size_t hashmap_hash_string_i(const char *key) {
     size_t hash = 0;
-    for (const unsigned char *c = (const unsigned char *)key; *c != 0; ++c) {
-        hash += (size_t)tolower((int)*c);
+    for (const unsigned char *c = (const unsigned char *) key; *c != 0; ++c) {
+        hash += (size_t) tolower((int) *c);
         hash += hash << 10;
         hash ^= hash >> 6;
     }

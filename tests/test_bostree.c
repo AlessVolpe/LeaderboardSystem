@@ -12,8 +12,8 @@
 } while (0)
 
 static int int_compare(const void *lhs, const void *rhs) {
-    const int left = *(const int *)lhs;
-    const int right = *(const int *)rhs;
+    const int left = *(const int *) lhs;
+    const int right = *(const int *) rhs;
     return (left > right) - (left < right);
 }
 

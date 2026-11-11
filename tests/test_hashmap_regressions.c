@@ -15,15 +15,15 @@
 } while (0)
 
 static size_t hash_string(const void *key) {
-    return hashmap_hash_string((const char *)key);
+    return hashmap_hash_string((const char *) key);
 }
 
 static int cmp_string(const void *lhs, const void *rhs) {
-    return strcmp((const char *)lhs, (const char *)rhs);
+    return strcmp((const char *) lhs, (const char *) rhs);
 }
 
 static size_t constant_hash(const void *key) {
-    (void)key;
+    (void) key;
     return 7u;
 }
 
@@ -33,7 +33,7 @@ static int fail_copy;
 
 static void *clone_key(const void *key) {
     if (fail_copy) return NULL;
-    size_t len = strlen((const char *)key) + 1u;
+    size_t len = strlen((const char *) key) + 1u;
     char *copy = malloc(len);
     if (copy == NULL) return NULL;
     memcpy(copy, key, len);
@@ -140,7 +140,7 @@ static void test_collisions_backward_shift_and_iteration(void) {
     int values[N];
     for (size_t i = 0; i < N; ++i) {
         snprintf(keys[i], sizeof(keys[i]), "key_%04zu", i);
-        values[i] = (int)i;
+        values[i] = (int) i;
         CHECK(hashmap_base_put(&m, keys[i], &values[i]) == 0);
         CHECK(hashmap_base_load_factor(&m) <= .75);
     }
@@ -154,11 +154,12 @@ static void test_collisions_backward_shift_and_iteration(void) {
         CHECK(hashmap_base_get(&m, keys[i]) == NULL);
     }
     CHECK(m.size == N / 2);
-    for (size_t i = 1; i < N; i += 2) CHECK(hashmap_base_get(&m, keys[i]) == &values[i]);
+    for (size_t i = 1; i < N; i += 2)
+        CHECK(hashmap_base_get(&m, keys[i]) == &values[i]);
 
     size_t nonmutating_walk = 0;
     for (hashmap_entry *it = hashmap_base_iter(&m, NULL); it != NULL;
-         (void)hashmap_base_iter_next(&m, &it)) {
+         (void) hashmap_base_iter_next(&m, &it)) {
         CHECK(hashmap_base_iter_valid(&m, it));
         CHECK(hashmap_base_iter_get_key(it) != NULL);
         ++nonmutating_walk;
@@ -174,12 +175,13 @@ static void test_collisions_backward_shift_and_iteration(void) {
         CHECK(visited[*value] == 0);
         visited[*value] = 1;
         ++walked;
-        (void)hashmap_base_iter_remove(&m, &it);
+        (void) hashmap_base_iter_remove(&m, &it);
     }
     CHECK(walked == N / 2);
     CHECK(m.size == 0);
     CHECK(hashmap_base_iter(&m, NULL) == NULL);
-    for (size_t i = 1; i < N; i += 2) CHECK(visited[i] == 1);
+    for (size_t i = 1; i < N; i += 2)
+        CHECK(visited[i] == 1);
     hashmap_base_cleanup(&m);
 }
 
@@ -213,6 +215,7 @@ static void test_reserve_reset_and_setter(void) {
 }
 
 static uint32_t rng_state = UINT32_C(0x1234abcd);
+
 static uint32_t next_random(void) {
     uint32_t x = rng_state;
     x ^= x << 13;
@@ -235,18 +238,24 @@ static void test_deterministic_differential(void) {
     }
     for (int step = 0; step < STEPS; ++step) {
         unsigned r = next_random();
-        int i = (int)(r % N);
+        int i = (int) (r % N);
         switch ((r >> 16) % 9) {
             case 0:
             case 1:
             case 2:
                 CHECK(hashmap_base_put(&m, keys[i], &values[i]) == (present[i] ? -EEXIST : 0));
-                if (!present[i]) { present[i] = 1; ++expected_size; }
+                if (!present[i]) {
+                    present[i] = 1;
+                    ++expected_size;
+                }
                 break;
             case 3:
             case 4:
                 CHECK(hashmap_base_remove(&m, keys[i]) == (present[i] ? &values[i] : NULL));
-                if (present[i]) { present[i] = 0; --expected_size; }
+                if (present[i]) {
+                    present[i] = 0;
+                    --expected_size;
+                }
                 break;
             case 5:
                 hashmap_base_clear(&m);

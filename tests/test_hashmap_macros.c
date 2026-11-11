@@ -22,7 +22,8 @@ static char *duplicate_string(const char *key) {
 static void release_string(char *key) { free(key); }
 
 int main(void) {
-    HASHMAP(char, int) map;
+    HASHMAP(char, int)
+    map;
     int values[] = {10, 20, 30, 40};
     hashmap_init(&map, hashmap_hash_string, strcmp);
     CHECK(hashmap_set_key_alloc_funcs(&map, duplicate_string, release_string) == 0);
@@ -32,7 +33,8 @@ int main(void) {
     CHECK(hashmap_put(&map, "four", &values[3]) == 0);
     CHECK(hashmap_set_key_alloc_funcs(&map, NULL, NULL) == -EBUSY);
 
-    HASHMAP_ITER(map) it = hashmap_iter(&map);
+    HASHMAP_ITER(map)
+    it = hashmap_iter(&map);
     CHECK(hashmap_iter_valid(&it));
     CHECK(hashmap_iter_set_data(&it, &values[3]) == 0);
     CHECK(hashmap_iter_get_data(&it) == &values[3]);
@@ -41,7 +43,8 @@ int main(void) {
     const char *key = NULL;
     void *temporary = NULL;
     size_t count = 0;
-    hashmap_foreach_key_safe(key, &map, temporary) {
+    hashmap_foreach_key_safe(key, &map, temporary)
+    {
         CHECK(key != NULL);
         CHECK(hashmap_remove(&map, key) != NULL);
         ++count;

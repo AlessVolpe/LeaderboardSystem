@@ -3,8 +3,8 @@
 ## Structure and invariants
 
 BOSTree is an **AVL-balanced order-statistics binary search tree**. The
-comparator defines a strict ordering on keys; comparator equality denotes
-**the same key**. The implementation stores the following metadata on each node:
+comparator defines a strict ordering on keys; comparator equality denotes **the same key**. The implementation stores
+the following metadata on each node:
 
 - `left_child_count` is the exact number of nodes in the left subtree.
 - `right_child_count` is the exact number of nodes in the right subtree.
@@ -17,8 +17,8 @@ comparator defines a strict ordering on keys; comparator equality denotes
 
 The node count is `left_child_count + right_child_count + 1` for any node, and
 zero for an empty tree. The implementation retains separate child counts in the
-existing public structure for compatibility; rotations and insertions
-**recompute** metadata bottom-up instead of modifying counts speculatively.
+existing public structure for compatibility; rotations and insertions **recompute** metadata bottom-up instead of
+modifying counts speculatively.
 The maximum representable tree size is `UINT_MAX` nodes.
 
 ## API and ownership
@@ -50,15 +50,15 @@ The maximum representable tree size is `UINT_MAX` nodes.
 
 ## Complexity
 
-| Operation | Worst-case time after successful insertion |
-| --- | --- |
-| Insertion / lookup | O(log n) |
-| Rank / select | O(log n) |
-| Successor / predecessor | O(log n) |
-| Full destruction | O(n) |
+| Operation               | Worst-case time after successful insertion |
+|-------------------------|--------------------------------------------|
+| Insertion / lookup      | O(log n)                                   |
+| Rank / select           | O(log n)                                   |
+| Successor / predecessor | O(log n)                                   |
+| Full destruction        | O(n)                                       |
 
-The AVL height bound is maintained by single and double rotations. This is a
-*structural* guarantee and does not assert anything about the business-domain
+The AVL height bound is maintained by single and double rotations. This is a *structural* guarantee and does not assert
+anything about the business-domain
 ranking semantics. Ranking by score requires a comparator over scores and a
 stable tie-breaking policy, which will be addressed in the typed ranking layer.
 
