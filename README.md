@@ -156,7 +156,7 @@ ctest --test-dir build --output-on-failure
 The library target is `leaderboard` (`Leaderboard::leaderboard` inside CMake). The executable
 prototype is now built as `leaderboard_cli` and is intentionally kept separate from the library.
 
-### 3.0.1: Native engine foundation
+### 3.0.1: Build & test foundation
 
 An initial CTest suite provides smoke tests for the hashmap and BOSTree implementations, while GitHub Actions validates 
 builds on Linux/GCC and Windows/MSYS2 UCRT64. Repository tracking rules and development documentation have also been 
