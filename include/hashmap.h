@@ -146,12 +146,12 @@ extern "C" {
  *              managed internally by the hashmap.
  *   void (*key_free_func)(<key_type> *) - free resources associated with a key
  */
-#define hashmap_set_key_alloc_funcs(h, key_dup_func, key_free_func) do {                                    \
+#define hashmap_set_key_alloc_funcs(h, key_dup_func, key_free_func) ({                                    \
     typeof((h)->map_types->t_key_dup_func) __map_key_dup = (key_dup_func);                                  \
     typeof((h)->map_types->t_key_free_func) __map_key_free = (key_free_func);                               \
     hashmap_base_set_key_alloc_funcs(&(h)->map_base, (void *(*)(const void *))__map_key_dup,                \
     (void(*)(void *))__map_key_free);                                                                       \
-} while (0)
+})
 
 /*
  * Return the number of entries in the hash map.
@@ -221,7 +221,7 @@ extern "C" {
  */
 #define hashmap_remove(h, key) ({                                                                       \
     typeof((h)->map_types->t_key) __map_key = (key);                                                    \
-    (typeof((h)->map_types->t_data))hahsmap_base_remove(&(h)->map_base, (const void*)__map_key);        \
+    (typeof((h)->map_types->t_data))hashmap_base_remove(&(h)->map_base, (const void*)__map_key);        \
 })
 
 /*
@@ -247,7 +247,7 @@ extern "C" {
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
-#define hashmap_iter(h) ((HASHMAP_ITER(*(h))){ &(h)->map_base, hashmap_base_iter(&(h)->map_base, NULL) })
+#define hashmap_iter(h) ((HASHMAP_ITER(*(h))){ .iter_map = &(h)->map_base, .iter_pos = hashmap_base_iter(&(h)->map_base, NULL) })
 
 /*
  * Return true if an iterator is valid and safe to use.
@@ -302,8 +302,8 @@ extern "C" {
  *   <data_type> *data - new data pointer
  */
 #define hashmap_iter_set_data(iter, data) ({                                                                \
-    (typeof((iter)->iter_types->t_data)) __map_data = (data);                                               \
-    hashmap_base_iter_set_data((iter)->iter_pos), (void *)__map_data);                                      \
+    typeof((iter)->iter_types->t_data) __map_data = (data);                                               \
+    hashmap_base_iter_set_data((iter)->iter_pos, (void *)__map_data);                                      \
 })
 
 /*

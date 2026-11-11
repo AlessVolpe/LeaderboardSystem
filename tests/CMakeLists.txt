@@ -3,6 +3,16 @@ target_link_libraries(test_hashmap PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(test_hashmap)
 add_test(NAME hashmap_smoke COMMAND test_hashmap)
 
+add_executable(test_hashmap_regressions test_hashmap_regressions.c)
+target_link_libraries(test_hashmap_regressions PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_hashmap_regressions)
+add_test(NAME hashmap_regressions COMMAND test_hashmap_regressions)
+
+add_executable(test_hashmap_macros test_hashmap_macros.c)
+target_link_libraries(test_hashmap_macros PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_hashmap_macros)
+add_test(NAME hashmap_typed_macros COMMAND test_hashmap_macros)
+
 add_executable(test_bostree test_bostree.c)
 target_link_libraries(test_bostree PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(test_bostree)
