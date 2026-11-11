@@ -1,0 +1,33 @@
+Start testing: Nov 11 16:04 ora solare Europa occidentale
+----------------------------------------------------------
+1/2 Testing: hashmap_smoke
+1/2 Test: hashmap_smoke
+Command: "C:/Users/aless/OneDrive/Documenti/GitHub/LeaderboardSystem/build/tests/test_hashmap.exe"
+Directory: C:/Users/aless/OneDrive/Documenti/GitHub/LeaderboardSystem/build/tests
+"hashmap_smoke" start time: Nov 11 16:04 ora solare Europa occidentale
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"hashmap_smoke" end time: Nov 11 16:04 ora solare Europa occidentale
+"hashmap_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/2 Testing: bostree_smoke
+2/2 Test: bostree_smoke
+Command: "C:/Users/aless/OneDrive/Documenti/GitHub/LeaderboardSystem/build/tests/test_bostree.exe"
+Directory: C:/Users/aless/OneDrive/Documenti/GitHub/LeaderboardSystem/build/tests
+"bostree_smoke" start time: Nov 11 16:04 ora solare Europa occidentale
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"bostree_smoke" end time: Nov 11 16:04 ora solare Europa occidentale
+"bostree_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 11 16:04 ora solare Europa occidentale

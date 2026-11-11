@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/aless/OneDrive/Documenti/GitHub/LeaderboardSystem/build/cmake_install.cmake",
+		"C:/Users/aless/OneDrive/Documenti/GitHub/LeaderboardSystem/build/tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
