@@ -16,7 +16,7 @@ extern "C" {
  * INTERNAL USE ONLY
  */
 #define __HASHMAP_ITER_RESET(iter) ({                                                                       \
-    ((iter)->iter_pos = hashmap_base_iter((iter)->iter_map, (iter)->iter_pos));                             \
+    ((iter)->iter_pos = hashmap_base_iter((iter)->iter_map, (iter)->iter_pos)) != NULL;                             \
 })
 
 #define __HASHMAP_CONCAT_2(x, y) x ## y
