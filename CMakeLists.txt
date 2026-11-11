@@ -53,7 +53,6 @@ leaderboard_apply_dev_options(leaderboard)
 
 add_executable(leaderboard_cli
     examples/leaderboard_cli.c
-        examples/leaderboard_cli.c
 )
 target_link_libraries(leaderboard_cli PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(leaderboard_cli)

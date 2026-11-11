@@ -1,0 +1,21 @@
+# Normalize source files across Windows and Unix checkouts.
+* text=auto
+
+*.c text eol=lf
+*.h text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+*.gitignore text eol=lf
+
+# Binary objects, if ever deliberately versioned.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
