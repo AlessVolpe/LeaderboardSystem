@@ -1,15 +1,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "include/bostree.h"
-#include "include/commons.h"
-#include "include/hashmap.h"
-#include "include/hashmap_base.h"
-#include "include/mtwister.h"
-#include "include/player.h"
+#include "bostree.h"
+#include "commons.h"
+#include "hashmap.h"
+#include "hashmap_base.h"
+#include "mtwister.h"
+#include "player.h"
 
 
-static void _tree_free(const BOSNode* node) {
+static void _tree_free(BOSNode* node) {
     free(node->key);
     free(node->data);
 }
