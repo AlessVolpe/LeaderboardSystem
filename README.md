@@ -151,3 +151,11 @@ ctest --test-dir build --output-on-failure
 
 The library target is `leaderboard` (`Leaderboard::leaderboard` inside CMake). The executable
 prototype is now built as `leaderboard_cli` and is intentionally kept separate from the library.
+
+### 3.0.2: Hashmap stabilization
+
+The native hashmap retains open addressing, linear probing and backward-shift
+removal. Its ownership and error contracts, invariants, and validation methods
+are specified in [docs/hashmap-contract.md](docs/hashmap-contract.md).
+Run `ctest --test-dir build --output-on-failure` after building to execute
+smoke, regression, and typed-macro tests. BOSTree stabilization is separate.

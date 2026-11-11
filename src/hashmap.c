@@ -1,478 +1,334 @@
-//
-// Created by aless on 08/03/2024.
-//
+// Hashmap with open addressing, linear probing, and backward-shift deletion.
+// This component owns its entry array and, optionally, duplicated keys.
+// Values are always borrowed; see docs/hashmap-contract.md.
+
+#include "hashmap_base.h"
 
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
-#include "commons.h"
-#include "hashmap_base.h"
+#define HASHMAP_SIZE_MIN 32u
+#define HASHMAP_SIZE_DEFAULT 128u
 
-
-#define HASHMAP_SIZE_MIN                32
-#define HASHMAP_SIZE_DEFAULT            128
-#define HASHMAP_SIZE_MOD(map, val)      ((val) & ((map)->table_size - 1))
-
-#define HASHMAP_PROBE_NEXT(map, index)  HASHMAP_SIZE_MOD(map, (index) + 1)
-
-/*
-* Calculate the optimal table size, given the specified max number
-* of elements.
-*/
-static size_t hashmap_calc_table_size(const hashmap_base* hb, const size_t size) {
-    // Enforce a maximum 0.75 load factor
-    size_t table_size = size + (size / 3);
-
-    // size shouldn't be lower than inizial size
-    if (table_size < hb->table_size_init) table_size = hb->table_size_init;
-    // round table size up to the nearest power of 2
-    else table_size = 1 << ((sizeof(unsigned long) << 3) - __builtin_clzl(table_size - 1));
-    return table_size;
+static size_t next_slot(const hashmap_base *hb, size_t slot) {
+    return (slot + 1u) & (hb->table_size - 1u);
 }
 
-/*
- * Get a valid hash table index from a key.
- */
-static size_t hashmap_calc_index(const hashmap_base* hb, const void* key) {
-    size_t index = hb->hash(key);
+/* Round up to a power-of-two table large enough for a <= 0.75 load. */
+static int table_size_for(size_t capacity, size_t minimum, size_t *result) {
+    size_t count = minimum < HASHMAP_SIZE_MIN ? HASHMAP_SIZE_MIN : minimum;
+    assert((count & (count - 1u)) == 0);
 
-    // run a secondary hash on the index, small performance hit but improves consinstency
-    index = hashmap_hash_default(&index, sizeof(index));
-    return HASHMAP_SIZE_MOD(hb, index);
-}
-
-/*
- * Return the next populated entry, starting with the specified one.
- * Returns NULL if there are no more valid entries.
- */
-static hashmap_entry* hashmap_entry_get_populated(const hashmap_base* hb, const hashmap_entry* entry) {
-    if (hb->size > 0) {
-        for(; entry < &hb->table[hb->table_size]; ++entry) {
-            if (entry->key) return (hashmap_entry*) entry;
-        }
+    while (capacity > count - count / 4u) {
+        if (count > SIZE_MAX / 2u) return -EOVERFLOW;
+        count *= 2u;
     }
-    return NULL;
-}
-
-
-/*
- * Find the hashmap entry with the specified key, or an empty slot.
- * Returns NULL if the entire table has been searched without finding a match.
- */
-static hashmap_entry* hashmap_entry_find(const hashmap_base* hb, const void* key, const bool find_empty) {
-    size_t index = hashmap_calc_index(hb, key);
-
-    // linear probing
-    for (size_t i = 0; i < hb->table_size; ++i) {
-        hashmap_entry* entry = &hb->table[index];
-        if (entry->key == NULL) {
-            if (find_empty) return entry;
-            return NULL;
-        }
-
-        if (hb->compare(key, entry->key) == 0) return entry;
-        index = HASHMAP_PROBE_NEXT(hb, index);
-    }
-    return NULL;
-}
-
-/*
- * Removes the specified entry and processes the following entries to
- * keep the chain contiguous.
- */
-static void hashmap_entry_remove(hashmap_base* hb, hashmap_entry* removed_entry) {
-    size_t removed_index = (removed_entry - hb->table);
-
-    // free the key
-    if (hb->key_free) hb->key_free(removed_entry->key);
-    --hb->size;
-
-    // fill the free slot in the chain
-    size_t index = HASHMAP_PROBE_NEXT(hb, removed_index);
-    for (size_t i = 0; i < hb->size; ++i) {
-        hashmap_entry* entry = &hb->table[index];
-        if (entry->key == NULL) break; // reached end of the chain
-
-        const size_t entry_index = hashmap_calc_index(hb, entry->key);
-        // shift in the chain entries with an index at or before the removed slot
-        if (HASHMAP_SIZE_MOD(hb, index - entry_index) > HASHMAP_SIZE_MOD(hb, removed_index - entry_index)) {
-            *removed_entry = *entry;
-            removed_index = index;
-            removed_entry = entry;
-        }
-        index = HASHMAP_PROBE_NEXT(hb, index);
-    }
-    // clear the last removed entry
-    memset(removed_entry, 0, sizeof(*removed_entry));
-}
-
-/*
- * Reallocates the hash table to the new size and rehashes all entries.
- * new_size MUST be a power of 2.
- * Returns 0 on success and -errno on allocation or hash function failure.
- */
-static int hashmap_rehash(hashmap_base* hb, const size_t table_size) {
-    assert((table_size & table_size - 1) == 0);
-    assert(table_size >= hb->size);
-
-    hashmap_entry* new_table = calloc(table_size, sizeof(hashmap_entry));
-    ERROR_RETURN((new_table == NULL), -ENOMEM, "REHASH_ERR: not enough memory");
-
-    const size_t old_size = hb->table_size;
-    hashmap_entry* old_table = hb->table;
-    hb->table_size = table_size;
-    hb->table = new_table;
-
-    if (old_table == NULL) return 0;
-
-    // rehash
-    for (const hashmap_entry* entry = old_table; entry < &old_table[old_size]; ++entry) {
-        if (entry->key == NULL) continue;
-        hashmap_entry* new_entry = hashmap_entry_find(hb, entry->key, true);
-        assert(new_entry != NULL);
-
-        // shallow copy
-        *new_entry = *entry;
-    }
-    free(old_table);
+    if (count > SIZE_MAX / sizeof(hashmap_entry)) return -EOVERFLOW;
+    *result = count;
     return 0;
 }
 
-/*
- * Iterate through all entries and free all keys.
- */
-static void hashmap_free_keys(const hashmap_base* hb) {
-    if (hb->key_free == NULL || hb->size == 0) return;
-    for (const hashmap_entry* entry = hb->table; entry < &hb->table[hb->table_size]; ++entry)
-        if (entry->key) hb->key_free(entry->key);
+static size_t initial_slot(const hashmap_base *hb, const void *key) {
+    size_t hash = hb->hash(key);
+    /* Retain the existing secondary hash for compatibility. */
+    return hashmap_hash_default(&hash, sizeof(hash)) & (hb->table_size - 1u);
 }
 
-/*
- * Initialize an empty hashmap.
- *
- * hash_func should return an even distribution of numbers between 0
- * and SIZE_MAX varying on the key provided.
- *
- * compare_func should return 0 if the keys match, and non-zero otherwise.
- */
-void hashmap_base_init(hashmap_base* hb, size_t (*hash_func)(const void*),
-    int (*compare_func)(const void*, const void*)) {
-    assert(hash_func != NULL);
-    assert(compare_func != NULL);
+static hashmap_entry *find_slot(const hashmap_base *hb, const void *key, bool empty_ok) {
+    if (hb->table_size == 0) return NULL;
+    size_t index = initial_slot(hb, key);
+    for (size_t scanned = 0; scanned < hb->table_size; ++scanned) {
+        hashmap_entry *entry = &hb->table[index];
+        if (entry->key == NULL) return empty_ok ? entry : NULL;
+        if (hb->compare(key, entry->key) == 0) return entry;
+        index = next_slot(hb, index);
+    }
+    return NULL;
+}
 
+/* Atomic in case of allocation failure: keep the old table untouched. */
+static int rehash(hashmap_base *hb, size_t count) {
+    assert(count && (count & (count - 1u)) == 0);
+    if (count > SIZE_MAX / sizeof(hashmap_entry)) return -EOVERFLOW;
+    hashmap_entry *next = calloc(count, sizeof(*next));
+    if (next == NULL) return -ENOMEM;
+
+    hashmap_base updated = *hb;
+    updated.table = next;
+    updated.table_size = count;
+    for (size_t i = 0; i < hb->table_size; ++i) {
+        if (hb->table[i].key != NULL) {
+            hashmap_entry *dest = find_slot(&updated, hb->table[i].key, true);
+            assert(dest != NULL);
+            *dest = hb->table[i]; /* Keys and data are never duplicated by rehash. */
+        }
+    }
+    free(hb->table);
+    hb->table = next;
+    hb->table_size = count;
+    return 0;
+}
+
+static void free_owned_keys(const hashmap_base *hb) {
+    if (hb->key_free == NULL || hb->size == 0) return;
+    for (size_t i = 0; i < hb->table_size; ++i) {
+        if (hb->table[i].key != NULL) hb->key_free(hb->table[i].key);
+    }
+}
+
+/* Preserve lookup correctness when deleting an entry from a probe cluster. */
+static void erase_slot(hashmap_base *hb, hashmap_entry *entry) {
+    size_t hole = (size_t)(entry - hb->table);
+    if (hb->key_free != NULL) hb->key_free(entry->key);
+    *entry = (hashmap_entry){0};
+    --hb->size;
+
+    size_t index = next_slot(hb, hole);
+    while (hb->table[index].key != NULL) {
+        size_t home = initial_slot(hb, hb->table[index].key);
+        size_t hole_distance = (hole - home) & (hb->table_size - 1u);
+        size_t index_distance = (index - home) & (hb->table_size - 1u);
+        if (hole_distance < index_distance) {
+            hb->table[hole] = hb->table[index];
+            hb->table[index] = (hashmap_entry){0};
+            hole = index;
+        }
+        index = next_slot(hb, index);
+    }
+}
+
+void hashmap_base_init(hashmap_base *hb, size_t (*hash_func)(const void *),
+                       int (*compare_func)(const void *, const void *)) {
+    assert(hb && hash_func && compare_func);
     memset(hb, 0, sizeof(*hb));
-
     hb->table_size_init = HASHMAP_SIZE_DEFAULT;
     hb->hash = hash_func;
     hb->compare = compare_func;
 }
 
-
-/*
- * Free the hashmap and all associated memory.
- */
-void hashmap_base_cleanup(hashmap_base* hb) {
-    GENERIC_ERROR_HELPER((hb == NULL), errno, "CLEANUP_ERR: hashmap doesn't exist");
-    hashmap_free_keys(hb);
+void hashmap_base_cleanup(hashmap_base *hb) {
+    if (hb == NULL) return;
+    free_owned_keys(hb);
     free(hb->table);
     memset(hb, 0, sizeof(*hb));
 }
 
-
-/*
- * Enable internal memory management of hash keys.
- */
-void hashmap_base_set_key_alloc_funcs(hashmap_base* hb,
-    void* (*key_dup_func)(const void*), void (*key_free_func)(void*)) {
+int hashmap_base_set_key_alloc_funcs(hashmap_base *hb,
+                                     void *(*key_dup_func)(const void *),
+                                     void (*key_free_func)(void *)) {
+    if (hb == NULL || ((key_dup_func == NULL) != (key_free_func == NULL))) return -EINVAL;
+    if (hb->size != 0) return -EBUSY;
     hb->key_dup = key_dup_func;
     hb->key_free = key_free_func;
-}
-
-/*
- * Set the hashmap's initial allocation size such that no rehashes are
- * required to fit the specified number of entries.
- * Returns 0 on success, or -errno on failure.
- */
-int hashmap_base_reserve(hashmap_base* hb, const size_t capacity) {
-    int r = 0;
-    const size_t old_size_init = hb->table_size_init; // original size backup
-
-    // set minimal table init size to support the specified capacity
-    hb->table_size_init = HASHMAP_SIZE_MIN;
-    hb->table_size_init = hashmap_calc_table_size(hb, capacity);
-
-    if (hb->table_size_init > hb->table_size) {
-        r = hashmap_rehash(hb, hb->table_size_init);
-        if (r < 0) hb->table_size_init = old_size_init;
-    }
-    return r;
-}
-
-/*
- * Add a new entry to the hashmap. If an entry with a matching key
- * already exists -EEXIST is returned.
- * Returns 0 on success, or -errno on failure.
- */
-int hashmap_base_put(hashmap_base* hb, const void* key, const void* data) {
-    int r = 0;
-    ERROR_RETURN((key == NULL || data == NULL), -EINVAL, "PUT_ERR: null key or data parameters");
-
-    // preemptively rehash with 2x capacity if load factor is approacing 0.75
-    const size_t table_size = hashmap_calc_table_size(hb, hb->size);
-    if (table_size > hb->table_size) r = hashmap_rehash(hb, table_size);
-
-    // get the entry for this key
-    hashmap_entry* entry = hashmap_entry_find(hb, key, true);
-    ERROR_RETURN((entry == NULL), -EADDRNOTAVAIL, "PUT_ERR: memory address not valid");
-    if (r < 0) return r; // rehash error
-
-    ERROR_RETURN(entry->key, -EEXIST, "PUT_ERR: key already exists");
-    if (hb->key_dup == NULL) {
-        entry->key = (void*) key;
-        entry->data = (void*) data;
-        ++hb->size;
-    } else {
-        // allocate copy of key to simplify memory management
-        entry->key = hb->key_dup(key);
-        ERROR_RETURN((entry->key == NULL), -ENOMEM, "PUT_ERR: not enough memory");
-    }
     return 0;
 }
 
-/*
- * Return the data pointer, or NULL if no entry exists.
- */
-void* hashmap_base_get(const hashmap_base* hb, const void* key) {
-    if (key == NULL) return NULL;
-
-    const hashmap_entry* entry = hashmap_entry_find(hb, key, false);
-    if (entry == NULL) return NULL;
-    return entry->data;
+int hashmap_base_reserve(hashmap_base *hb, size_t capacity) {
+    if (hb == NULL) return -EINVAL;
+    size_t wanted;
+    int rc = table_size_for(capacity, HASHMAP_SIZE_MIN, &wanted);
+    if (rc != 0) return rc;
+    if (wanted > hb->table_size) {
+        rc = rehash(hb, wanted);
+        if (rc != 0) return rc;
+    }
+    hb->table_size_init = wanted;
+    return 0;
 }
 
-/*
- * Remove an entry with the specified key from the map.
- * Returns the data pointer, or NULL, if no entry was found.
- */
-void* hahsmap_base_remove(hashmap_base* hb, const void* key) {
-    if (key == NULL) return NULL;
+int hashmap_base_put(hashmap_base *hb, const void *key, const void *data) {
+    if (hb == NULL || key == NULL || data == NULL) return -EINVAL;
+    if (find_slot(hb, key, false) != NULL) return -EEXIST;
+    if (hb->size == SIZE_MAX) return -EOVERFLOW;
 
-    hashmap_entry* entry = hashmap_entry_find(hb, key, false);
+    size_t wanted;
+    int rc = table_size_for(hb->size + 1u, hb->table_size_init, &wanted);
+    if (rc != 0) return rc;
+    if (wanted > hb->table_size) {
+        rc = rehash(hb, wanted);
+        if (rc != 0) return rc;
+    }
+
+    hashmap_entry *slot = find_slot(hb, key, true);
+    if (slot == NULL) return -ENOSPC;
+    void *stored_key = hb->key_dup == NULL ? (void *)key : hb->key_dup(key);
+    if (stored_key == NULL) return -ENOMEM;
+    slot->key = stored_key;
+    slot->data = (void *)data;
+    ++hb->size;
+    return 0;
+}
+
+void *hashmap_base_get(const hashmap_base *hb, const void *key) {
+    if (hb == NULL || key == NULL) return NULL;
+    hashmap_entry *entry = find_slot(hb, key, false);
+    return entry == NULL ? NULL : entry->data;
+}
+
+void *hashmap_base_remove(hashmap_base *hb, const void *key) {
+    if (hb == NULL || key == NULL) return NULL;
+    hashmap_entry *entry = find_slot(hb, key, false);
     if (entry == NULL) return NULL;
-    void* data = entry->data;
-
-    // remove entry and make chain contiguos
-    hashmap_entry_remove(hb, entry);
+    void *data = entry->data;
+    erase_slot(hb, entry);
     return data;
 }
 
-/*
- * Remove all entries.
- */
-void hashmap_base_clear(hashmap_base* hb) {
-    hashmap_free_keys(hb);
-    hb->size = 0;
-    memset(hb->table, 0, sizeof(hashmap_entry) * hb->table_size);
+/* ABI compatibility for code using the original misspelled symbol. */
+void *hahsmap_base_remove(hashmap_base *hb, const void *key) {
+    return hashmap_base_remove(hb, key);
 }
 
-/*
- * Remove all entries and reset the hash table to its initial size.
- */
-void hashmap_base_reset(hashmap_base* hb) {
-
-    hashmap_free_keys(hb);
+void hashmap_base_clear(hashmap_base *hb) {
+    if (hb == NULL) return;
+    free_owned_keys(hb);
     hb->size = 0;
+    if (hb->table != NULL) memset(hb->table, 0, hb->table_size * sizeof(*hb->table));
+}
 
-    if (hb->table_size != hb->table_size_init) {
-        hashmap_entry* new_table = realloc(hb->table, sizeof(hashmap_entry*) * hb->table_size_init);
-        if (new_table != NULL) {
-            hb->table = new_table;
-            hb->table_size = hb->table_size_init;
-        }
+void hashmap_base_reset(hashmap_base *hb) {
+    if (hb == NULL) return;
+    hashmap_base_clear(hb);
+    if (hb->table == NULL || hb->table_size == hb->table_size_init) return;
+    /* A failed shrink is harmless: the empty table remains valid. */
+    hashmap_entry *smaller = calloc(hb->table_size_init, sizeof(*smaller));
+    if (smaller == NULL) return;
+    free(hb->table);
+    hb->table = smaller;
+    hb->table_size = hb->table_size_init;
+}
+
+static hashmap_entry *next_populated(const hashmap_base *hb, const hashmap_entry *start) {
+    if (hb == NULL || hb->size == 0 || hb->table == NULL) return NULL;
+    for (const hashmap_entry *entry = start; entry < hb->table + hb->table_size; ++entry) {
+        if (entry->key != NULL) return (hashmap_entry *)entry;
     }
-    memset(hb->table, 0, sizeof(hashmap_entry) * hb->table_size);
+    return NULL;
 }
 
-/*
- * Get a new hashmap iterator. The iterator is an opaque
- * pointer that may be used with hashmap_iter_*() functions.
- * Hashmap iterators are INVALID after a put or remove operation is performed.
- * hashmap_iter_remove() allows safe removal during iteration.
- */
-hashmap_entry* hashmap_base_iter(const hashmap_base* hb, const hashmap_entry* pos) {
-    if (pos == NULL) pos = hb->table;
-    return hashmap_entry_get_populated(hb, pos);
+hashmap_entry *hashmap_base_iter(const hashmap_base *hb, const hashmap_entry *pos) {
+    if (hb == NULL || hb->table == NULL) return NULL;
+    return next_populated(hb, pos == NULL ? hb->table : pos);
 }
 
-/*
- * Return true if an iterator is valid and safe to use.
- */
-bool hashmap_base_iter_valid(const hashmap_base* hb, const hashmap_entry* iter) {
-    return hb && iter && iter->key && iter >= hb->table && iter < &hb->table[hb->table_size];
+bool hashmap_base_iter_valid(const hashmap_base *hb, const hashmap_entry *iter) {
+    if (hb == NULL || hb->table == NULL || iter == NULL) return false;
+    /* uintptr_t avoids undefined relational comparisons between unrelated objects. */
+    uintptr_t first = (uintptr_t)hb->table;
+    uintptr_t addr = (uintptr_t)iter;
+    if (addr < first || addr - first >= hb->table_size * sizeof(*hb->table)) return false;
+    if ((addr - first) % sizeof(*hb->table) != 0) return false;
+    return iter->key != NULL;
 }
 
-/*
- * Advance an iterator to the next hashmap entry.
- * Returns false if there are no more entries.
- */
-bool hashmap_base_iter_next(const hashmap_base* hb, hashmap_entry** iter) {
-    if (*iter == NULL) return false;
-    return (*iter = hashmap_entry_get_populated(hb, *iter + 1)) != NULL;
+bool hashmap_base_iter_next(const hashmap_base *hb, hashmap_entry **iter) {
+    if (iter == NULL || *iter == NULL || !hashmap_base_iter_valid(hb, *iter)) return false;
+    *iter = next_populated(hb, *iter + 1);
+    return *iter != NULL;
 }
 
-/*
- * Remove the hashmap entry pointed to by this iterator and advance the
- * iterator to the next entry.
- * Returns true if the iterator is valid after the operation.
- */
-bool hashmap_base_iter_remove(hashmap_base* hb, hashmap_entry** iter) {
-    if (*iter == NULL) return false;
-    if ((*iter)->key) hashmap_entry_remove(hb, *iter); // remove entry if iterator is valid
-    return (*iter = hashmap_entry_get_populated(hb, *iter)) != NULL;
+bool hashmap_base_iter_remove(hashmap_base *hb, hashmap_entry **iter) {
+    if (iter == NULL || *iter == NULL || !hashmap_base_iter_valid(hb, *iter)) return false;
+    hashmap_entry *current = *iter;
+    erase_slot(hb, current);
+    *iter = next_populated(hb, current);
+    return *iter != NULL;
 }
 
-/*
- * Return the key of the entry pointed to by the iterator.
- */
-const void* hashmap_base_iter_get_key(const hashmap_entry* iter) {
-    if (iter == NULL) return NULL;
-    return iter->key;
+const void *hashmap_base_iter_get_key(const hashmap_entry *iter) {
+    return iter == NULL ? NULL : iter->key;
 }
 
-/*
- * Return the data of the entry pointed to by the iterator.
- */
-void* hashmap_base_iter_get_data(const hashmap_entry* iter) {
-    if (iter == NULL) return NULL;
-    return iter->data;
+void *hashmap_base_iter_get_data(const hashmap_entry *iter) {
+    return iter == NULL ? NULL : iter->data;
 }
 
-/*
- * Set the data pointer of the entry pointed to by the iterator.
- */
-int hashmap_base_iter_set_data(hashmap_entry* iter, void* data) {
-    ERROR_RETURN(iter == NULL, -EFAULT, "ITER_SET_DATA_ERR: iterator not valid");
-    ERROR_RETURN(iter == NULL, -EINVAL, "ITER_SET_DATA_ERR: data not valid");
+int hashmap_base_iter_set_data(hashmap_entry *iter, void *data) {
+    if (iter == NULL) return -EFAULT;
+    if (data == NULL) return -EINVAL;
     iter->data = data;
     return 0;
 }
 
-/*
- * Return the load factor.
- */
-double hashmap_base_load_factor(const hashmap_base* hb) {
-    if (!hb->table_size) return 0;
-    return (double)hb->size / hb->table_size;
+double hashmap_base_load_factor(const hashmap_base *hb) {
+    return hb == NULL || hb->table_size == 0 ? 0.0 : (double)hb->size / (double)hb->table_size;
 }
 
-/*
- * Return the number of collisions for this key.
- * This would always be 0 if a perfect hash function was used, but in ordinary
- * usage, there may be a few collisions, depending on the hash function and
- * load factor.
- */
-size_t hashmap_base_collisions(const hashmap_base* hb, const void* key) {
-    size_t i;
-    if (key == NULL) return 0;
-    size_t index = hashmap_calc_index(hb, key);
-
-    // linear probing
-    for (i = 0; i < hb->table_size; ++i) {
-        const hashmap_entry* entry = &hb->table[index];
-        if (entry->key == NULL) return 0; // key does not exist
-        if (hb->compare(key, entry->key) == 0) break;
-        index = HASHMAP_PROBE_NEXT(hb, index);
+size_t hashmap_base_collisions(const hashmap_base *hb, const void *key) {
+    if (hb == NULL || key == NULL || hb->table_size == 0) return 0;
+    size_t index = initial_slot(hb, key);
+    for (size_t probes = 0; probes < hb->table_size; ++probes) {
+        const hashmap_entry *entry = &hb->table[index];
+        if (entry->key == NULL) return 0;
+        if (hb->compare(key, entry->key) == 0) return probes;
+        index = next_slot(hb, index);
     }
-    return i;
+    return 0;
 }
 
-
-/*
- * Return the average number of collisions per entry.
- */
-double hashmap_base_collisions_mean(const hashmap_base* hb) {
-    size_t tot_collisions = 0;
-    if (!hb->size) return 0;
-
-    for (const hashmap_entry* entry = hb->table; entry < &hb->table[hb->table_size]; ++entry) {
-        if (entry->key == NULL) continue;
-        tot_collisions += hashmap_base_collisions(hb, entry->key);
+double hashmap_base_collisions_mean(const hashmap_base *hb) {
+    if (hb == NULL || hb->size == 0) return 0.0;
+    double total = 0.0;
+    for (size_t i = 0; i < hb->table_size; ++i) {
+        if (hb->table[i].key != NULL) total += (double)hashmap_base_collisions(hb, hb->table[i].key);
     }
-    return (double)tot_collisions / hb->size;
+    return total / (double)hb->size;
 }
 
-
-/*
- * Return the variance between entry collisions. The higher the variance,
- * the more likely the hash function is poor and is resulting in clustering.
- */
-double hashmap_base_collisions_variance(const hashmap_base* hb) {
-    double tot_variance = 0;
-    if (!hb->size) return 0;
-    const double avg_collisions = hashmap_base_collisions_mean(hb);
-
-    for (const hashmap_entry* entry = hb->table; entry < &hb->table[hb->table_size]; ++entry) {
-        if (entry->key == NULL) continue;
-        const double variance = (double)hashmap_base_collisions(hb, entry->key) - avg_collisions;
-        tot_variance += variance * variance;
+double hashmap_base_collisions_variance(const hashmap_base *hb) {
+    if (hb == NULL || hb->size == 0) return 0.0;
+    double mean = hashmap_base_collisions_mean(hb);
+    double total = 0.0;
+    for (size_t i = 0; i < hb->table_size; ++i) {
+        if (hb->table[i].key != NULL) {
+            double deviation = (double)hashmap_base_collisions(hb, hb->table[i].key) - mean;
+            total += deviation * deviation;
+        }
     }
-    return tot_variance / hb->size;
+    return total / (double)hb->size;
 }
 
-/*
- * Recommended hash function for data keys.
- *
- * This is an implementation of the well-documented Jenkins one-at-a-time
- * hash function. See https://en.wikipedia.org/wiki/Jenkins_hash_function
- */
-size_t hashmap_hash_default(const void* data, size_t len) {
+/* Jenkins one-at-a-time hash, preserving the original size_t arithmetic. */
+size_t hashmap_hash_default(const void *data, size_t length) {
     size_t hash = 0;
-    const uint8_t* byte = data;
-
-    for (size_t i = 0; i < len; ++i) {
-        hash += *byte++;
+    const unsigned char *byte = (const unsigned char *)data;
+    for (size_t i = 0; i < length; ++i) {
+        hash += byte[i];
         hash += hash << 10;
         hash ^= hash >> 6;
     }
     hash += hash << 3;
     hash ^= hash >> 11;
     hash += hash << 15;
-    return  hash;
+    return hash;
 }
 
-/*
- * Recommended hash function for string keys.
- */
-size_t hashmap_hash_string(const char* key) {
+size_t hashmap_hash_string(const char *key) {
     size_t hash = 0;
-
-    for (; *key; ++key) {
-        hash += *key;
+    for (const unsigned char *c = (const unsigned char *)key; *c != 0; ++c) {
+        hash += *c;
         hash += hash << 10;
         hash ^= hash >> 6;
     }
     hash += hash << 3;
     hash ^= hash >> 11;
     hash += hash << 15;
-    return  hash;
+    return hash;
 }
 
-/*
- * Case insensitive hash function for string keys.
- */
-size_t hashmap_hash_string_i(const char* key) {
+size_t hashmap_hash_string_i(const char *key) {
     size_t hash = 0;
-
-    for (; *key; ++key) {
-        hash += tolower(*key);
+    for (const unsigned char *c = (const unsigned char *)key; *c != 0; ++c) {
+        hash += (size_t)tolower((int)*c);
         hash += hash << 10;
         hash ^= hash >> 6;
     }
     hash += hash << 3;
     hash ^= hash >> 11;
     hash += hash << 15;
-    return  hash;
+    return hash;
 }

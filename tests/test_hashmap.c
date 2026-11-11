@@ -1,4 +1,7 @@
-#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define CHECK(cond) do { if (!(cond)) { fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #cond); exit(EXIT_FAILURE); } } while (0)
 #include <string.h>
 
 #include "hashmap.h"
@@ -9,12 +12,12 @@ int main(void) {
 
     hashmap_init(&map, hashmap_hash_string, strcmp);
 
-    assert(hashmap_put(&map, "alpha", &value) == 0);
-    assert(hashmap_size(&map) == 1);
-    assert(hashmap_get(&map, "alpha") == &value);
-    assert(hashmap_remove(&map, "alpha") == &value);
-    assert(hashmap_get(&map, "alpha") == NULL);
-    assert(hashmap_size(&map) == 0);
+    CHECK(hashmap_put(&map, "alpha", &value) == 0);
+    CHECK(hashmap_size(&map) == 1);
+    CHECK(hashmap_get(&map, "alpha") == &value);
+    CHECK(hashmap_remove(&map, "alpha") == &value);
+    CHECK(hashmap_get(&map, "alpha") == NULL);
+    CHECK(hashmap_size(&map) == 0);
 
     hashmap_cleanup(&map);
     return 0;
