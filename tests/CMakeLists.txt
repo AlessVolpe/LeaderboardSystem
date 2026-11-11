@@ -17,3 +17,8 @@ add_executable(test_bostree test_bostree.c)
 target_link_libraries(test_bostree PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(test_bostree)
 add_test(NAME bostree_smoke COMMAND test_bostree)
+
+add_executable(test_bostree_invariants test_bostree_invariants.c)
+target_link_libraries(test_bostree_invariants PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_bostree_invariants)
+add_test(NAME bostree_invariants COMMAND test_bostree_invariants)

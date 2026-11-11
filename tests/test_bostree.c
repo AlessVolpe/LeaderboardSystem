@@ -1,7 +1,15 @@
-#include <assert.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "bostree.h"
+
+#define CHECK(condition) do {                                                     \
+    if (!(condition)) {                                                          \
+        fprintf(stderr, "%s:%d: failed: %s\n", __FILE__, __LINE__, #condition);  \
+        exit(EXIT_FAILURE);                                                      \
+    }                                                                            \
+} while (0)
 
 static int int_compare(const void *lhs, const void *rhs) {
     const int left = *(const int *)lhs;
@@ -14,14 +22,14 @@ int main(void) {
     int value = 42;
 
     BOSTree *tree = bostree_new(int_compare, NULL);
-    assert(tree != NULL);
+    CHECK(tree != NULL);
 
     BOSNode *node = bostree_insert(tree, &key, &value);
-    assert(node != NULL);
-    assert(bostree_node_count(tree) == 1);
-    assert(bostree_lookup(tree, &key) == node);
-    assert(bostree_select(tree, 0) == node);
-    assert(bostree_rank(node) == 0);
+    CHECK(node != NULL);
+    CHECK(bostree_node_count(tree) == 1);
+    CHECK(bostree_lookup(tree, &key) == node);
+    CHECK(bostree_select(tree, 0) == node);
+    CHECK(bostree_rank(node) == 0);
 
     bostree_destroy(tree);
     return 0;
