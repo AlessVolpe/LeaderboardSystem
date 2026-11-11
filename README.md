@@ -1,5 +1,9 @@
 # Leaderboard system
 
+[![C library build and smoke tests](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml)
+[![C library build and smoke tests](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml)
+[![C library build and smoke tests](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml)
+
 As a part of my [Fantacalcio Dummy System](https://github.com/AlessVolpe/FantacalcioDummySystem.git)
 project, I wanted to experiment with type-safe and efficient data structures
 to implement a ranking algorithm.
@@ -166,3 +170,14 @@ removal. Its ownership and error contracts, invariants, and validation methods
 are specified in [docs/hashmap-contract.md](docs/hashmap-contract.md).
 Run `ctest --test-dir build --output-on-failure` after building to execute
 smoke, regression, and typed-macro tests. BOSTree stabilization is separate.
+
+### 3.0.3: BOSTree stabilization
+
+The AVL-based order-statistics tree has been stabilized by correcting tree rotations, parent-child relationships, 
+subtree metadata, and rank/select operations. Duplicate-key handling and insertion safety have also been improved to 
+preserve structural consistency.
+
+Deterministic regression tests verify AVL balancing, subtree sizes, traversal order, and order-statistics invariants 
+across sequential and randomized insertions. The implementation contracts and validation methodology are documented in 
+[docs/bostree-contract.md](docs/bostree-contract.md). Node deletion and post-deletion rebalancing are deferred to 
+milestone 3.0.4.
