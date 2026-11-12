@@ -22,3 +22,35 @@ add_executable(test_bostree_invariants test_bostree_invariants.c)
 target_link_libraries(test_bostree_invariants PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(test_bostree_invariants)
 add_test(NAME bostree_invariants COMMAND test_bostree_invariants)
+
+add_executable(test_bostree_deletion test_bostree_deletion.c)
+target_link_libraries(test_bostree_deletion PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_bostree_deletion)
+add_test(NAME bostree_deletion COMMAND test_bostree_deletion)
+
+# Exercise the actual interactive example, including cleanup under sanitizers.
+add_test(NAME leaderboard_cli_unique COMMAND ${CMAKE_COMMAND}
+    "-DCLI=$<TARGET_FILE:leaderboard_cli>"
+    "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/cli_unique.txt"
+    -DEXPECT_INSERTED=5
+    -DEXPECT_DUPLICATES=0
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/run_leaderboard_cli.cmake)
+
+add_test(NAME leaderboard_cli_duplicate COMMAND ${CMAKE_COMMAND}
+    "-DCLI=$<TARGET_FILE:leaderboard_cli>"
+    "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/cli_duplicate.txt"
+    -DEXPECT_INSERTED=4
+    -DEXPECT_DUPLICATES=1
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/run_leaderboard_cli.cmake)
+
+add_test(NAME leaderboard_cli_invalid_count COMMAND ${CMAKE_COMMAND}
+    "-DCLI=$<TARGET_FILE:leaderboard_cli>"
+    "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/cli_invalid_count.txt"
+    -DEXPECT_ERROR=1
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/run_leaderboard_cli.cmake)
+
+add_test(NAME leaderboard_cli_incomplete_input COMMAND ${CMAKE_COMMAND}
+    "-DCLI=$<TARGET_FILE:leaderboard_cli>"
+    "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/cli_incomplete.txt"
+    -DEXPECT_INCOMPLETE=1
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/run_leaderboard_cli.cmake)

@@ -6,11 +6,9 @@
 
 #include "player.h"
 
-/*
- * TODO: fix memory leaks
-*/
 player_t *player_create(char *name) {
     player_t *player = calloc(1, sizeof(player_t));
+    if (player == NULL) return NULL;
     player->name = name;
     player->score = 0;
     return player;

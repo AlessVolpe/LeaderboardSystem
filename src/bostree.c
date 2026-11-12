@@ -41,7 +41,7 @@ static int _bostree_balance(const BOSNode *node) {
 static void _bostree_replace_child(BOSTree *tree, BOSNode *old_node,
                                    BOSNode *replacement) {
     BOSNode *grandparent = old_node->parent_node;
-    replacement->parent_node = grandparent;
+    if (replacement != NULL) replacement->parent_node = grandparent;
 
     if (grandparent == NULL) {
         tree->root_node = replacement;
@@ -128,25 +128,49 @@ BOSTree *bostree_new(const BOSTree_cmp_func cmp_func, const BOSTree_free_func fr
     return tree;
 }
 
+/*
+ * Invalidate a detached node. The tree's ownership reference is released here,
+ * but external references keep the tombstone allocated until their last unref.
+ * Payload finalization occurs exactly once, while the tree is still alive.
+ */
+static void _bostree_dispose(BOSTree *tree, BOSNode *node) {
+    assert(tree != NULL && node != NULL);
+    assert(node->weak_ref_node_valid && node->weak_ref_count > 0);
+
+    node->weak_ref_node_valid = 0;
+    node->left_child_node = NULL;
+    node->right_child_node = NULL;
+    node->parent_node = NULL;
+    node->left_child_count = 0;
+    node->right_child_count = 0;
+    node->depth = 0;
+
+    if (tree->free_func != NULL) tree->free_func(node);
+    node->key = NULL;
+    node->data = NULL;
+
+    if (--node->weak_ref_count == 0) free(node);
+}
+
 void bostree_destroy(BOSTree *tree) {
     if (tree == NULL) return;
 
+    /* Iterative postorder disposal; retains O(n) time and O(1) extra memory. */
     BOSNode *node = tree->root_node;
-    while (node) {
-        while (node->left_child_node) node = node->left_child_node;
-        if (node->right_child_node) {
+    while (node != NULL) {
+        while (node->left_child_node != NULL) node = node->left_child_node;
+        if (node->right_child_node != NULL) {
             node = node->right_child_node;
             continue;
         }
 
-        BOSNode *next = node->parent_node;
-        if (next) {
-            if (next->left_child_node == node) next->left_child_node = NULL;
-            else next->right_child_node = NULL;
+        BOSNode *parent = node->parent_node;
+        if (parent != NULL) {
+            if (parent->left_child_node == node) parent->left_child_node = NULL;
+            else parent->right_child_node = NULL;
         }
-        /* External weak references must be released before destroying the tree. */
-        bostree_node_weak_unref(tree, node);
-        node = next;
+        _bostree_dispose(tree, node);
+        node = parent;
     }
     free(tree);
 }
@@ -178,29 +202,71 @@ BOSNode *bostree_insert(BOSTree *tree, void *key, void *data) {
 }
 
 void bostree_remove(BOSTree *tree, BOSNode *node) {
-    (void) tree;
-    (void) node;
-    handle_error("REMOVE_ERR: NOT_IMPLEMENTED");
+    if (tree == NULL || node == NULL || !node->weak_ref_node_valid) return;
+
+    /* An attached node must reach this tree's root via parent links. */
+    BOSNode *root = node;
+    while (root->parent_node != NULL) root = root->parent_node;
+    if (root != tree->root_node) return;
+
+    BOSNode *rebalance_from;
+    if (node->left_child_node == NULL || node->right_child_node == NULL) {
+        BOSNode *child = node->left_child_node != NULL
+                             ? node->left_child_node : node->right_child_node;
+        BOSNode *parent = node->parent_node;
+        _bostree_replace_child(tree, node, child);
+        rebalance_from = parent != NULL ? parent : child;
+    } else {
+        /* Physically transplant the successor. Swapping keys or payloads would
+         * invalidate references to both nodes and alter ownership semantics. */
+        BOSNode *successor = node->right_child_node;
+        while (successor->left_child_node != NULL)
+            successor = successor->left_child_node;
+
+        if (successor->parent_node == node) {
+            _bostree_replace_child(tree, node, successor);
+            successor->left_child_node = node->left_child_node;
+            successor->left_child_node->parent_node = successor;
+            rebalance_from = successor;
+        } else {
+            BOSNode *old_parent = successor->parent_node;
+            _bostree_replace_child(tree, successor, successor->right_child_node);
+            _bostree_replace_child(tree, node, successor);
+            successor->left_child_node = node->left_child_node;
+            successor->right_child_node = node->right_child_node;
+            successor->left_child_node->parent_node = successor;
+            successor->right_child_node->parent_node = successor;
+            /* The old successor parent now reaches the transplanted root. */
+            rebalance_from = old_parent;
+        }
+    }
+
+    _bostree_rebalance_up(tree, rebalance_from);
+    _bostree_dispose(tree, node);
 }
 
 BOSNode *bostree_node_weak_ref(BOSNode *node) {
-    assert(node != NULL);
-    assert(node->weak_ref_count < 127);
-    assert(node->weak_ref_count > 0);
-    node->weak_ref_count++;
+    if (node == NULL || !node->weak_ref_node_valid ||
+        node->weak_ref_count == 0U || node->weak_ref_count == UCHAR_MAX) return NULL;
+    ++node->weak_ref_count;
     return node;
 }
 
 BOSNode *bostree_node_weak_unref(const BOSTree *tree, BOSNode *node) {
-    assert(tree != NULL);
-    assert(node != NULL);
-    assert(node->weak_ref_count > 0);
-    node->weak_ref_count--;
-    if (node->weak_ref_count == 0) {
-        if (tree->free_func) tree->free_func(node);
+    /* Retained invalid nodes must be releasable after bostree_destroy(tree). */
+    (void) tree;
+    if (node == NULL) return NULL;
+
+    /* The tree owns the final reference while a node is still attached. */
+    if (node->weak_ref_node_valid && node->weak_ref_count == 1U)
+        return node;
+
+    assert(node->weak_ref_count != 0U);
+    if (--node->weak_ref_count == 0U) {
         free(node);
-    } else if (node->weak_ref_node_valid) return node;
-    return NULL;
+        return NULL;
+    }
+    return node->weak_ref_node_valid ? node : NULL;
 }
 
 BOSNode *bostree_lookup(const BOSTree *tree, const void *key) {
@@ -233,7 +299,7 @@ BOSNode *bostree_select(const BOSTree *tree, unsigned int index) {
 }
 
 BOSNode *bostree_next_node(BOSNode *node) {
-    if (node == NULL) return NULL;
+    if (node == NULL || !node->weak_ref_node_valid) return NULL;
     if (node->right_child_node) {
         node = node->right_child_node;
         while (node->left_child_node) node = node->left_child_node;
@@ -246,7 +312,7 @@ BOSNode *bostree_next_node(BOSNode *node) {
 }
 
 BOSNode *bostree_prev_node(BOSNode *node) {
-    if (node == NULL) return NULL;
+    if (node == NULL || !node->weak_ref_node_valid) return NULL;
     if (node->left_child_node) {
         node = node->left_child_node;
         while (node->right_child_node) node = node->right_child_node;
@@ -259,7 +325,7 @@ BOSNode *bostree_prev_node(BOSNode *node) {
 }
 
 unsigned int bostree_rank(const BOSNode *node) {
-    assert(node != NULL);
+    if (node == NULL || !node->weak_ref_node_valid) return UINT_MAX;
     unsigned int rank = node->left_child_count;
     while (node->parent_node != NULL) {
         if (node->parent_node->right_child_node == node)

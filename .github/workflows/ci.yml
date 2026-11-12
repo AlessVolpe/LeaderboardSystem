@@ -15,7 +15,7 @@ jobs:
       - name: Verify preinstalled build tools
         run: cmake --version && gcc --version && ninja --version
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DLEADERBOARD_WARNINGS_AS_ERRORS=ON
       - name: Build
         run: cmake --build build
       - name: Test
@@ -36,7 +36,7 @@ jobs:
             mingw-w64-ucrt-x86_64-ninja
       - name: Configure
         shell: msys2 {0}
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DLEADERBOARD_WARNINGS_AS_ERRORS=ON
       - name: Build
         shell: msys2 {0}
         run: cmake --build build
@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Configure
-        run: cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DLEADERBOARD_ENABLE_SANITIZERS=ON
+        run: cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DLEADERBOARD_ENABLE_SANITIZERS=ON -DLEADERBOARD_WARNINGS_AS_ERRORS=ON
       - name: Build
         run: cmake --build build-asan
       - name: Test
