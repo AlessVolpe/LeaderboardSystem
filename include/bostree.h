@@ -47,9 +47,20 @@ unsigned int bostree_node_count(const BOSTree *tree);
 
 BOSNode *bostree_insert(BOSTree *tree, void *key, void *data);
 
-/* Unimplemented until 3.0.4; calling this function terminates the process. */
+/* Remove an attached node, rebalance in O(log n), and dispose its payload.
+ * Does nothing for NULL, invalidated nodes, or nodes in another live tree.
+ * A valid pointer to an attached node is required; dangling pointers are UB.
+ * Nodes retained by weak_ref become invalid tombstones on removal. */
 void bostree_remove(BOSTree *tree, BOSNode *node);
 
+/* Retain a live node. Returns NULL if invalid or the 8-bit count is full.
+ * The tree holds one reference; callers release only references they acquired.
+ * The finalizer is invoked on removal/destroy (not the last external unref).
+ * After invalidation the retained node has weak_ref_node_valid == 0, NULL
+ * key/data/links, and can only be inspected for validity and released.
+ * A retained node can be released after tree destruction by passing NULL for
+ * tree. For compatibility the tree argument is otherwise ignored.
+ * Both functions require a non-dangling node or NULL. Never release twice. */
 BOSNode *bostree_node_weak_ref(BOSNode *node);
 
 BOSNode *bostree_node_weak_unref(const BOSTree *tree, BOSNode *node);
@@ -62,7 +73,7 @@ BOSNode *bostree_next_node(BOSNode *node);
 
 BOSNode *bostree_prev_node(BOSNode *node);
 
-/* Zero-based rank; node must be non-NULL and belong to a live tree. */
+/* Zero-based rank for attached nodes; UINT_MAX for NULL/invalidated nodes. */
 unsigned int bostree_rank(const BOSNode *node);
 
 #if !defined(NDEBUG)

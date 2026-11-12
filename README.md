@@ -182,3 +182,16 @@ Deterministic regression tests verify AVL balancing, subtree sizes, traversal or
 across sequential and randomized insertions. The implementation contracts and validation methodology are documented in
 [docs/bostree-contract.md](docs/bostree-contract.md). Node deletion and post-deletion rebalancing are deferred to
 milestone 3.0.4.
+
+### 3.0.4: BOSTree deletion and lifecycle management
+
+Node deletion now maintains AVL balancing, parent links, subtree counts and
+zero-based order statistics, including the two-child successor-transplant case.
+Retained node references become invalid after removal or tree destruction;
+payload finalization occurs exactly once, and retained tombstones can be
+released independently of the tree's lifetime.
+
+The `bostree_deletion` regression suite covers exhaustive deletion orders,
+randomized insert/remove operations and reference lifecycle cases. The API
+contracts, verification strategy and limitations are documented in
+[docs/bostree-deletion-contract.md](docs/bostree-deletion-contract.md).
