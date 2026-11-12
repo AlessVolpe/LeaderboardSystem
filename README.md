@@ -1,115 +1,120 @@
 # Leaderboard system
 
 [![C library build and smoke tests](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml)
-[![C library build and smoke tests](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml)
-[![C library build and smoke tests](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml/badge.svg)](https://github.com/AlessVolpe/LeaderboardSystem/actions/workflows/ci.yml)
 
-As a part of my [Fantacalcio Dummy System](https://github.com/AlessVolpe/FantacalcioDummySystem.git)
-project, I wanted to experiment with type-safe and efficient data structures
-to implement a ranking algorithm.
+As a part of my [Fantacalcio Dummy System](https://github.com/AlessVolpe/FantacalcioDummySystem.git) project, I wanted to experiment with type-safe and efficient data structures to implement a ranking algorithm.
 
-The ranking happens in two different moments, when a player is added to the
-system is at first put into a hashmap, then when the system needs to compile
-the leaderboard every player is moved to a self-balancing AVL tree.
+The ranking happens in two different moments: when a player is added to the system, they're first placed in a hashmap; when the system needs to compile the leaderboard, players are moved to a self-balancing AVL tree.
+
+This is the approach currently demonstrated by the CLI prototype. The reusable ranking abstraction is still under development.
 
 ## Player pool or hashmap
 
-The player pool is implemented using a hashmap, a data structure that maps
-key to value. An index is computed via a hash function h, generically it maps
-the universe U of keys
+The player pool is implemented using a hashmap, a data structure that maps keys to values. An index is computed via a hash function \(h\), which maps the universe \(U\) of possible keys to one of the \(m\) available slots in the table:
 
 ```math
-h: U ⇒ {0, ..., m-1}
+h: U \rightarrow \{0, 1, \ldots, m-1\}
 ```
 
-to array indices or slots within
-the table for each
+For each key \(x\), the resulting index satisfies:
 
 ```math
-h(x) ∈ 0, ..., m-1\text{ for }x ∈ S ∧ m<n
+0 \leq h(x) < m
 ```
 
-A well implemented hash map offers constant (linear at worst) time complexity
-for insertion, lookup and deletion; while space complexity is linear. More
-specifically, during lookup the key is hashed and the resulting hash indicates
-where the corresponding value is stored: works wonders for our case of study!
+The implementation uses open addressing with linear probing to resolve collisions, keeping the table's load factor below or equal to 0.75:
 
-I find really important to say thank you for the
-[original implementation](https://github.com/DavidLeeds/hashmap.git) to
-[DavidLeeds](https://github.com/DavidLeeds), from his repo I couldn't take his
-amazing work on the CMake files because it didn't fit my use case.
+```math
+\alpha = \frac{n}{m} \leq 0.75
+```
+
+where \(n\) represents the number of stored entries and \(m\) the allocated table capacity.
+
+A well-implemented hashmap offers expected constant-time lookup, insertion and deletion, assuming a reasonable distribution of hash values. However, collisions and clustering can degrade individual operations to linear time. Insertion may also trigger a rehash, making its constant-time complexity an *amortized* expectation rather than an unconditional guarantee.
+
+More specifically, during lookup the key is hashed and its resulting index indicates where the corresponding value should be stored. If collisions have occurred, linear probing examines subsequent slots until a matching key or an empty slot is found. Works wonders for our case of study!
+
+The implementation also uses backward-shift deletion to preserve probe-chain continuity when entries are removed.
+
+I find really important to say thank you to [DavidLeeds](https://github.com/DavidLeeds) for the [original implementation](https://github.com/DavidLeeds/hashmap.git). Unfortunately, I couldn't reuse his amazing work on the CMake files because it didn't fit my particular use case.
 
 ## Leaderboard or BOSTree
 
-The leaderboard is implemented using an order statistic tree,
-a variant of the binary search tree, implemented as self-balancing AVL tree
-with two additional methods:
+The leaderboard is implemented using an order-statistics tree, a variant of the binary search tree, implemented as a self-balancing AVL tree with two additional operations:
 
-- Select (i), which finds i'th smallest element;
-- Rank (x), which returns the rank of a given element.
+- `Select(i)`, which finds the element at the zero-based index \(i\) in sorted order;
+- `Rank(x)`, which returns the zero-based position of an existing element \(x\).
 
-Both of those two methods run in a logarithmic time complexity, which is indeed
-the worst case scenario considering it happens when implemented as a
-self-balancing tree; it's definitely pretty good though!
+Both operations have worst-case logarithmic time complexity, \(O(\log n)\), thanks to the AVL tree's height-balancing properties. The same bound applies to lookup, insertion and deletion. It's definitely pretty good, though!
 
-To turn a regular search tree into an order statistic tree, the nodes need to
-store one additional value for the size of the subtree rooted at that node.
-All operation that modify the tree must adjust this information to preserve the
-invariant that
+To turn a regular search tree into an order-statistics tree, the nodes must also maintain information about the size of their subtrees. In this implementation, each node stores separate counts for its left and right subtrees.
+
+Every operation that modifies the tree must preserve the invariant:
 
 ```math
-size[x] = size[left[x]] + size[right[x]] + 1
+\operatorname{size}(x) =
+\operatorname{size}(\operatorname{left}(x)) +
+\operatorname{size}(\operatorname{right}(x)) + 1
 ```
 
-where ```size[NULL] = 0```, by definition.
-The tree is implemented using map semantics, that is, there are separate key
-and value pointers.
+where:
 
-Again it's really important to me to thank also
-[phillipberndt](https://github.com/phillipberndt) for the
-[original implementation](https://github.com/phillipberndt/bostree.git) and
-testing both on AFL and Valgrind.
+```math
+\operatorname{size}(\mathrm{NULL}) = 0
+```
+
+by definition.
+
+These counts allow the tree to navigate directly towards a selected rank without traversing every preceding node. AVL rotations must therefore preserve not only the binary-search ordering and balance factors, but also parent relationships and subtree cardinalities.
+
+The tree uses map semantics, meaning that keys and values are represented by separate pointers. Its comparison function determines the ordering; the eventual score-based ranking rules and tie-breaking policies belong to the higher-level ranking abstraction.
+
+Again, it's really important to thank [phillipberndt](https://github.com/phillipberndt) for the [original implementation](https://github.com/phillipberndt/bostree.git), including the testing performed with AFL and Valgrind.
 
 ## Player id generation
 
-### A PRNG better than rand ()
+### A PRNG better than rand()
 
-One of the challenges to overcome, it was having unique ids for the players, and as most of us know c's ```rand()```
-function isn't really cut for greatness.
+One of the challenges to overcome was generating identifiers for the players. And, as most of us know, C's `rand()` function isn't exactly cut for greatness.
 
-```c++
-srand(time(NULL))
-rand() // sorry little man
+```c
+srand(time(NULL));
+rand(); // sorry little man
 ```
 
-On Stack Overflow some guy, 7 years ago, decided to ask about PRNGs for his fractal
-flame generator, with the sequent requirements:
+While looking into alternative pseudo-random number generators, I came across a Stack Overflow discussion about generating random numbers for fractal flames. The requirements were quite reasonable:
 
-- It should produce relatively high quality streams of random numbers
-- Its period should be over ten billion
-- It should be fast enough and offer a good performance trade-off.
+- It should produce relatively high-quality streams of random numbers;
+- Its period should be greater than ten billion;
+- It should be fast enough to offer a good performance trade-off.
 
-The best answer suggested the Mersenne Twister, a PRNG developed by Makoto Matsumoto
-and Takuji Nishimura in 1997. Generally faster than many older PRNGs, like ```rand()```
-(rip), it was designed specifically to rectify flaws found in those PRNGs.
-The most common version of the algorithm is based on the Mersenne prime ```(2^19937)-1```
-(yikes!), and its standard implementation MT19937 uses a 32-bt word length.
+The answer suggested the Mersenne Twister, a PRNG developed by Makoto Matsumoto and Takuji Nishimura. The widely used MT19937 variant generates 32-bit values and has an exceptionally long period:
 
-I have to thank [ESultankik](https://github.com/ESultanik) for the first adaptation of the
-pseudocode in: M. Matsumoto and T. Nishimura, "Mersenne Twister: A 623-dimensionally
-equidistributed uniform pseudorandom number generator," ACM transactions on Modeling and
-Computer Simulation Vol. 8, No. 1, January pp.3-30 1998. I took the time to fix the Issue #3
-in his code and changed the types to accurately sized ones, mainly ```unsigned long``` to
-```uint32_t``` and secondly ```int``` to ```int32_t``` both found in ```stdint.h```.
+```math
+2^{19937} - 1
+```
+
+The algorithm was designed to improve the statistical properties of earlier pseudo-random number generators. However, it remains deterministic: the same initial state produces the same sequence, and its statistical properties do not make it cryptographically secure.
+
+I have to thank [ESultanik](https://github.com/ESultanik) for the first adaptation of the pseudocode described in:
+
+M. Matsumoto and T. Nishimura, "Mersenne Twister: A 623-dimensionally equidistributed uniform pseudo-random number generator," *ACM Transactions on Modeling and Computer Simulation*, Vol. 8, No. 1, pp. 3–30, 1998.
+
+I also took the time to address Issue #3 in that implementation and use explicitly sized integer types, mainly `uint32_t` instead of `unsigned long` and `int32_t` instead of `int`, both provided by `<stdint.h>`.
 
 ### GUID generation
 
-After tackling the randomized part of the GUID generation I had to search for a simple, really
-not elegant, yet effective solution. Stack Overflow is a saving grace. I slightly improved the
-original implementation that was posted over 10 years ago (and yet I was already coding...)
-giving it a slight (really slight) elegance, but it works it's all I need.
+After tackling the randomized part of the identifier generation, I had to find a simple, not particularly elegant, yet effective solution. Stack Overflow was a saving grace once again.
+
+The current implementation generates UUIDv4-shaped identifiers using the Mersenne Twister and a locally managed seed. I slightly improved the original approach to avoid identical initial states within the same clock tick and to handle the allocated resources correctly.
+
+There is, however, an important distinction between producing a random-looking identifier and guaranteeing its uniqueness.
+
+The current implementation is sufficient for experimenting with the CLI prototype, but it doesn't provide cryptographic randomness or a formal guarantee against identifier collisions. A production implementation should use a trusted UUID library or a cryptographically secure random source.
 
 ## A really simple drawing
+
+The following diagram represents the intended architecture of the Fantacalcio Dummy System. Not all components are implemented in the current native library.
 
 ```mermaid
 graph LR
@@ -127,9 +132,7 @@ graph LR
 
 ## Development: 3.x native engine foundation
 
-The 3.x development line turns the original executable experiment into a reusable native
-library. The current CLI is retained as an example consumer while the data structures are
-stabilized and tested before Fantacalcio-specific domain logic is introduced.
+The 3.x development line turns the original executable experiment into a reusable native library. The current CLI is retained as an example consumer while the data structures are stabilized and tested before Fantacalcio-specific domain logic is introduced.
 
 Configure and build a debug version:
 
@@ -144,7 +147,7 @@ Run the test suite:
 ctest --test-dir build --output-on-failure
 ```
 
-AddressSanitizer and UndefinedBehaviorSanitizer can be enabled on GCC/Clang builds:
+AddressSanitizer and UndefinedBehaviorSanitizer can be enabled on supported GCC/Clang builds:
 
 ```bash
 cmake -S . -B build \
@@ -154,50 +157,40 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-The library target is `leaderboard` (`Leaderboard::leaderboard` inside CMake). The executable
-prototype is now built as `leaderboard_cli` and is intentionally kept separate from the library.
+Compiler warnings can also be treated as errors by enabling `LEADERBOARD_WARNINGS_AS_ERRORS`.
+
+The library target is `leaderboard` (`Leaderboard::leaderboard` inside CMake). The executable prototype is built as `leaderboard_cli` and intentionally kept separate from the library.
+
+Correctness is evaluated using deterministic regression tests, structural invariants and randomized workloads with fixed seeds. These tests establish evidence about functional behavior, but should not be confused with a performance evaluation. Future benchmarking will require controlled workloads, recorded hardware and compiler configurations, repeated measurements, and comparisons against independent implementations.
 
 ### 3.0.1: Build & test foundation
 
-An initial CTest suite provides smoke tests for the hashmap and BOSTree implementations, while GitHub Actions validates
-builds on Linux/GCC and Windows/MSYS2 UCRT64. Repository tracking rules and development documentation have also been
-standardized to improve reproducibility and maintainability. This milestone establishes the development and testing
-infrastructure without modifying the underlying data structure algorithms.
+An initial CTest suite provides smoke tests for the hashmap and BOSTree implementations, while GitHub Actions runs builds on Linux/GCC and Windows/MSYS2 UCRT64. Repository tracking rules and development documentation have also been standardized to improve reproducibility and maintainability.
+
+This milestone establishes the development and testing infrastructure without modifying the underlying data structure algorithms.
 
 ### 3.0.2: Hashmap stabilization
 
-The native hashmap retains open addressing, linear probing and backward-shift
-removal. Its ownership and error contracts, invariants, and validation methods
-are specified in [docs/hashmap-contract.md](docs/hashmap-contract.md).
-Run `ctest --test-dir build --output-on-failure` after building to execute
-smoke, regression, and typed-macro tests. BOSTree stabilization is separate.
+The native hashmap retains open addressing, linear probing and backward-shift removal. Its ownership and error contracts, invariants, and validation methods are specified in [docs/hashmap-contract.md](docs/hashmap-contract.md).
+
+Run `ctest --test-dir build --output-on-failure` after building to execute smoke, regression, and typed-macro tests. BOSTree stabilization is addressed separately.
 
 ### 3.0.3: BOSTree stabilization
 
-The AVL-based order-statistics tree has been stabilized by correcting tree rotations, parent-child relationships,
-subtree metadata, and rank/select operations. Duplicate-key handling and insertion safety have also been improved to
-preserve structural consistency.
+The AVL-based order-statistics tree has been stabilized by correcting tree rotations, parent-child relationships, subtree metadata, and rank/select operations. Duplicate-key handling and insertion safety have also been improved to preserve structural consistency.
 
-Deterministic regression tests verify AVL balancing, subtree sizes, traversal order, and order-statistics invariants
-across sequential and randomized insertions. The implementation contracts and validation methodology are documented in
-[docs/bostree-contract.md](docs/bostree-contract.md). Node deletion and post-deletion rebalancing are deferred to
-milestone 3.0.4.
+Deterministic regression tests verify AVL balancing, subtree sizes, traversal order, and order-statistics invariants across sequential and randomized insertions. The implementation contracts and validation methodology are documented in [docs/bostree-contract.md](docs/bostree-contract.md).
+
+Node deletion and post-deletion rebalancing were subsequently addressed in milestone 3.0.4.
 
 ### 3.0.4: BOSTree deletion and lifecycle management
 
-Node deletion now maintains AVL balancing, parent links, subtree counts and
-zero-based order statistics, including the two-child successor-transplant case.
-Retained node references become invalid after removal or tree destruction;
-payload finalization occurs exactly once, and retained tombstones can be
-released independently of the tree's lifetime.
+Node deletion now maintains AVL balancing, parent links, subtree counts and zero-based order statistics, including the two-child successor-transplant case.
 
-The `bostree_deletion` regression suite covers exhaustive deletion orders,
-randomized insert/remove operations and reference lifecycle cases. The API
-contracts, verification strategy and limitations are documented in
-[docs/bostree-deletion-contract.md](docs/bostree-deletion-contract.md).
+Retained node references that become invalid after removal or tree destruction; payload finalization occurs exactly once, and retained tombstones can be released independently of the tree's lifetime.
 
-The legacy CLI also receives a compiler-warning and ownership cleanup: typed
-player pointers replace integer-to-pointer casts, names and generated IDs have
-explicit lifetimes, and CTest exercises normal and invalid input. The PRNG
-and UUID utilities receive targeted correctness and resource-handling fixes.
-CI now treats compiler warnings as errors.
+The `bostree_deletion` regression suite covers exhaustive deletion orders, randomized insert/remove operations and reference lifecycle cases. The API contracts, verification strategy and limitations are documented in [docs/bostree-deletion-contract.md](docs/bostree-deletion-contract.md).
+
+The legacy CLI also receives a compiler-warning and ownership cleanup: typed player pointers replace integer-to-pointer casts, names and generated IDs have explicit lifetimes, and CTest exercises normal and invalid input.
+
+The PRNG and UUID utilities receive targeted correctness and resource-handling fixes. CI now treats compiler warnings as errors.
