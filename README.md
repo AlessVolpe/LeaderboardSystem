@@ -195,3 +195,9 @@ The `bostree_deletion` regression suite covers exhaustive deletion orders,
 randomized insert/remove operations and reference lifecycle cases. The API
 contracts, verification strategy and limitations are documented in
 [docs/bostree-deletion-contract.md](docs/bostree-deletion-contract.md).
+
+The legacy CLI also receives a compiler-warning and ownership cleanup: typed
+player pointers replace integer-to-pointer casts, names and generated IDs have
+explicit lifetimes, and CTest exercises normal and invalid input. The PRNG
+and UUID utilities receive targeted correctness and resource-handling fixes.
+CI now treats compiler warnings as errors.

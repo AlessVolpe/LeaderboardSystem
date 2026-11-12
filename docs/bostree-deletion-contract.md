@@ -103,6 +103,9 @@ and machine specifications alongside performance results.
 
 ## Deferred
 
-The legacy CLI's ownership and casts are still unsafe and should not be used
-as a memory-safety demonstration. The next milestones will address an opaque
-API and typed ranking integration; neither is implemented here.
+The legacy example CLI has received a targeted ownership and warning cleanup:
+it now transfers `player_t*` values into the tree, frees UUID keys and random
+state, bounds player-name input, and handles duplicate names without leaking
+player objects. This is an example program, not a production ranking API.
+The next milestones will address an opaque API and typed ranking integration;
+neither is implemented here.
