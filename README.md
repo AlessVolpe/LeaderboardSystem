@@ -52,15 +52,15 @@ To turn a regular search tree into an order-statistics tree, the nodes must also
 Every operation that modifies the tree must preserve the invariant:
 
 ```math
-\operatorname{size}(x) =
-\operatorname{size}(\operatorname{left}(x)) +
-\operatorname{size}(\operatorname{right}(x)) + 1
+\mathrm{size}(x) =
+\mathrm{size}(\mathrm{left}(x)) +
+\mathrm{size}(\mathrm{right}(x)) + 1
 ```
 
 where:
 
 ```math
-\operatorname{size}(\mathrm{NULL}) = 0
+\mathrm{size}(\mathrm{NULL}) = 0
 ```
 
 by definition.
