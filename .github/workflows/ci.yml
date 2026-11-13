@@ -5,6 +5,9 @@ on:
     branches: [ master ]
   pull_request:
   workflow_dispatch:
+  # Scheduled workflows run from the default branch only (after merge).
+  schedule:
+    - cron: "0 3 * * *"
 
 jobs:
   linux-gcc:
@@ -55,3 +58,61 @@ jobs:
         run: cmake --build build-asan
       - name: Test
         run: ctest --test-dir build-asan --output-on-failure
+
+  # 3.0.8: Compile and fuzz the real data-structure code under Clang's
+  # libFuzzer + ASan + UBSan. Each structure runs independently so a crash in
+  # one campaign cannot prevent the other campaign from reporting results.
+  linux-clang-fuzz:
+    name: Linux / Clang 18 / libFuzzer (${{ matrix.structure }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        structure: [hashmap, bostree]
+    permissions:
+      contents: read
+    env:
+      # Short campaigns gate PRs/pushes; manual and nightly runs go deeper.
+      FUZZ_RUNS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '100000' || '5000' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Clang 18 and libFuzzer runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 libclang-rt-18-dev ninja-build
+
+      - name: Configure fuzzing build
+        run: |
+          cmake -S . -B build-fuzz -G Ninja \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DLEADERBOARD_BUILD_FUZZERS=ON \
+            -DLEADERBOARD_WARNINGS_AS_ERRORS=ON
+
+      - name: Build instrumented fuzzer
+        run: cmake --build build-fuzz --target fuzz_${{ matrix.structure }}_libfuzzer
+
+      - name: Run ${{ matrix.structure }} fuzz campaign
+        run: |
+          mkdir -p "fuzz-artifacts/${{ matrix.structure }}" "fuzz-corpus/${{ matrix.structure }}"
+          "./build-fuzz/tests/fuzz_${{ matrix.structure }}_libfuzzer" \
+            "fuzz-corpus/${{ matrix.structure }}" \
+            -runs="${FUZZ_RUNS}" \
+            -max_len=4096 \
+            -timeout=10 \
+            -artifact_prefix="fuzz-artifacts/${{ matrix.structure }}/"
+
+      # Always upload even when a fuzzer crashes; a regression must leave an
+      # actionable reproducer, not just an anonymous red checkmark.
+      - name: Upload corpus and crash artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: libfuzzer-${{ matrix.structure }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            fuzz-artifacts/${{ matrix.structure }}/
+            fuzz-corpus/${{ matrix.structure }}/
+          if-no-files-found: ignore
+          retention-days: 14
