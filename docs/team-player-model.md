@@ -60,5 +60,6 @@ Replacing the historical `score` member **changes the public struct layout
 and breaks sources that access `player->score`**, even though the old constructor
 and `player_adding_points` symbols remain available. It is also an ABI change:
 recompile/relink clients and assign a new library version before distributing
-it as a release. This standalone post-3.0.10 patch intentionally does not
-claim to be a numbered release or alter the CMake project version.
+it as a release. The merged model is in the 3.0.10.5 source/package version.
+Version changes do not make this layout ABI-compatible with old binaries;
+consumers using `player_t` must be rebuilt.

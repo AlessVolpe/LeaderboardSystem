@@ -1,5 +1,9 @@
 # Ranking abstraction contract (3.0.5)
 
+> **Historical scope:** This covers the generic API introduced in 3.0.5,
+> not the later team model or a fixture simulator. See
+> [current architecture](current-architecture.md).
+
 Milestone 3.0.5 introduces a small, domain-neutral ranking API in
 [`include/ranking.h`](../include/ranking.h), implemented by
 [`src/ranking.c`](../src/ranking.c). It uses the stabilized hashmap and

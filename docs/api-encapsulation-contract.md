@@ -1,5 +1,9 @@
 # API boundaries and module contract (3.0.6)
 
+> **Historical scope:** This describes milestone 3.0.6. For subsequent
+> portable callbacks, package integration, and the player model, see the
+> [documentation index](index.md).
+
 Milestone 3.0.6 hardens the native C interface without rewriting the AVL
 or hashmap algorithms. The ranking API remains domain-independent, and the
 existing `Leaderboard::leaderboard` archive and public include paths remain

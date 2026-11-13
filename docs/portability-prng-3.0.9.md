@@ -1,12 +1,16 @@
 # 3.0.9: PRNG reproducibility and portable integration
 
+> **Historical scope:** The authoritative current CMake version is 3.0.10.5.
+> This page specifies the earlier 3.0.9 milestone and its test vectors.
+
 ## Version contract
 
-`project(leaderboardsystem VERSION 3.0.9 LANGUAGES C)` is the authoritative
-package version. CMake writes `LeaderboardConfigVersion.cmake` from that
-version, and an independent example requires `find_package(Leaderboard 3.0.9
-CONFIG REQUIRED)` before linking `Leaderboard::leaderboard`. Starting with
-this milestone, the source version changes in each numbered milestone.
+At milestone 3.0.9, `project(leaderboardsystem VERSION 3.0.9 LANGUAGES C)`
+was the authoritative package version. CMake generates
+`LeaderboardConfigVersion.cmake` from that declaration. The independent
+consumer at that milestone required `find_package(Leaderboard 3.0.9 CONFIG
+REQUIRED)` before linking `Leaderboard::leaderboard`. Later milestones
+advance the package version.
 
 The project follows its own milestone numbering convention within the `3.x`
 series. CMake versions still use numeric `major.minor.patch` components; the

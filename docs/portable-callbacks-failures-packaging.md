@@ -1,5 +1,9 @@
 # Portable callbacks, failure injection and installation (3.0.7)
 
+> **Historical scope:** This describes milestone 3.0.7, not the
+> current package version 3.0.10.5. See [verification](verification.md)
+> and [current architecture](current-architecture.md).
+
 Milestone 3.0.7 extends the encapsulated 3.0.6 native library without changing
 hashmap collision resolution, BOSTree balancing or the generic ranking order.
 It introduces a strict-C11 route for typed hashmap consumers, deterministic

@@ -1,5 +1,9 @@
 # Hashmap stabilization: contract and verification (3.0.2)
 
+> **Historical scope:** This is a 3.0.2 snapshot. The current opaque API and
+> portable adapters are covered by [API boundaries](api-encapsulation-contract.md)
+> and [portable callbacks](portable-callbacks-failures-packaging.md).
+
 ## Representation and invariants
 
 The implementation uses **open addressing with linear probing** and **backward-shift deletion**. The capacity is a power

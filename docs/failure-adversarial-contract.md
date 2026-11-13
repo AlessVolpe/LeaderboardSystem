@@ -1,5 +1,8 @@
 # Failure safety and adversarial testing (milestone 3.0.8)
 
+> **Historical scope:** This records the 3.0.8 test contract. See
+> [verification](verification.md) for the current test suite.
+
 Milestone 3.0.8 extends the isolated allocation hooks and portable callbacks
 from 3.0.7 with state-aware tests. **It does not change public types, exported
 functions, ranking semantics, or production data-structure algorithms.**

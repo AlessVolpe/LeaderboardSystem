@@ -6,6 +6,12 @@ As a part of my [Fantacalcio Dummy System](https://github.com/AlessVolpe/Fantaca
 
 The original CLI first stores teams in a hashmap and later transfers them to a **name-ordered** AVL tree. The reusable `ranking_t` API, implemented since 3.0.5, instead maintains a hashmap index and an order-statistics AVL tree simultaneously to support dynamic score updates and rank queries. The CLI remains a demonstration, not a Fantacalcio fixture simulator.
 
+## Documentation
+
+The [documentation index](docs/index.md) distinguishes current contracts
+from historical milestones. Read [current architecture](docs/current-architecture.md)
+and [verification](docs/verification.md) for implementation and testing.
+
 ## Team/player scoring model
 
 The public `player_t` is now a team record with a borrowed `name`, simulation-dependent `uint32_t championship_points`, and a simulation-independent `uint32_t total_points_tenths`. The latter stores a nonnegative one-decimal fantasy score exactly (for example, `24835` represents `2483.5`). New constructors, checked championship-point updates and a reset helper support repeated fixture permutations without changing the season total. The generic `ranking_t` score and ordering contract is unchanged. See [docs/team-player-model.md](docs/team-player-model.md) for ownership, migration, scaling and integration boundaries.
@@ -133,6 +139,10 @@ graph LR
 ```
 
 ## Development: 3.x native engine foundation
+
+The current CMake project/package version is **3.0.10.5**. The numbered
+sections below describe historical milestone scopes, not the current API
+in isolation.
 
 The 3.x development line turns the original executable experiment into a reusable native library. The current CLI is retained as an example consumer while the data structures are stabilized and tested before Fantacalcio-specific domain logic is introduced.
 
