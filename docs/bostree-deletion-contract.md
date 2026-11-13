@@ -1,5 +1,9 @@
 # BOSTree deletion and lifecycle contract (3.0.4)
 
+> **Historical scope:** This is a 3.0.4 snapshot. References to public
+> node fields and future encapsulation do not describe the current API; see
+> [API boundaries](api-encapsulation-contract.md).
+
 This document extends the insertion and ordering contract in
 [`bostree-contract.md`](bostree-contract.md). It describes the behavior after
 milestone 3.0.4; the older milestone's deferred-work notes remain historical.

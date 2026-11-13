@@ -1,5 +1,8 @@
 # Milestone 3.0.10: Performance and release readiness
 
+> **Historical scope:** This records the 3.0.10 benchmark milestone. The
+> current CMake project/package version is 3.0.10.5.
+
 ## Scope
 
 The benchmark executable uses **public APIs only** and measures three independently
@@ -70,16 +73,17 @@ CPU, release flags, and input sizes with any published report.
 
 ## Release verification checklist
 
-1. Set `project(... VERSION 3.0.10 ...)` and ensure an independent consumer
-   requests `Leaderboard 3.0.10`.
+1. Verify the declared CMake project version against the package being
+   tested, and check the independent consumer's minimum required version.
 2. Run the full default CTest suite with GCC and Clang on Linux, and GCC UCRT64
    on Windows. Run ASan/UBSan on Linux; the sanitizer option verifies runtime
    linking during CMake configure.
 3. Configure a separate Release build with `LEADERBOARD_BUILD_BENCHMARKS=ON`,
    run CTest, and capture CSV for multiple workload sizes.
 4. Install into a temporary prefix and build the standalone
-   `examples/external_consumer` project using `find_package(Leaderboard
-   3.0.10 CONFIG REQUIRED)` and `Leaderboard::leaderboard`.
+   `examples/external_consumer` project using its declared `find_package`
+   requirement and `Leaderboard::leaderboard`. A compatible minimum version
+   does not, by itself, guarantee ABI compatibility with old `player_t` layouts.
 5. Verify strict C11 public-header checks, public API error contracts, and
    the optional libFuzzer workflow remain green.
 6. Review LICENSE, THIRD_PARTY_NOTICES.md, and package contents before tagging.

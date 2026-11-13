@@ -1,5 +1,10 @@
 # BOSTree stabilization: contract and verification (3.0.3)
 
+> **Historical scope:** This is a 3.0.3 snapshot. Deletion was implemented
+> in 3.0.4 and public handles were made opaque in 3.0.6. See
+> [deletion/lifecycle](bostree-deletion-contract.md) and
+> [API boundaries](api-encapsulation-contract.md).
+
 ## Structure and invariants
 
 BOSTree is an **AVL-balanced order-statistics binary search tree**. The
