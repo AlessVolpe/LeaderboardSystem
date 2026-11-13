@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(leaderboardsystem VERSION 3.0.9 LANGUAGES C)
+project(leaderboardsystem VERSION 3.0.10 LANGUAGES C)
 
 include(CTest)
 include(GNUInstallDirs)
@@ -8,6 +8,29 @@ include(CMakePackageConfigHelpers)
 option(LEADERBOARD_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(LEADERBOARD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(LEADERBOARD_BUILD_FUZZERS "Build Clang/libFuzzer harnesses (requires BUILD_TESTING)" OFF)
+option(LEADERBOARD_BUILD_BENCHMARKS "Build deterministic performance benchmarks" OFF)
+
+# Check compile AND link, because some GCC distributions accept sanitizer
+# flags but do not ship the corresponding runtime libraries (notably UCRT64).
+if (LEADERBOARD_ENABLE_SANITIZERS)
+    if (NOT CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        message(FATAL_ERROR "LEADERBOARD_ENABLE_SANITIZERS requires GCC or Clang")
+    endif ()
+    include(CheckCSourceCompiles)
+    include(CMakePushCheckState)
+    cmake_push_check_state(RESET)
+    set(CMAKE_REQUIRED_FLAGS "-fsanitize=address,undefined -fno-omit-frame-pointer")
+    set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=address,undefined")
+    check_c_source_compiles("int main(void) { return 0; }"
+        LEADERBOARD_ASAN_UBSAN_LINK_SUPPORTED)
+    cmake_pop_check_state()
+    if (NOT LEADERBOARD_ASAN_UBSAN_LINK_SUPPORTED)
+        message(FATAL_ERROR
+            "The selected toolchain cannot compile and link ASan/UBSan. "
+            "Use -DLEADERBOARD_ENABLE_SANITIZERS=OFF or a supported "
+            "Linux/WSL GCC or Clang toolchain.")
+    endif ()
+endif ()
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -91,8 +114,22 @@ add_executable(leaderboard_ranking_batch examples/ranking_batch.c)
 target_link_libraries(leaderboard_ranking_batch PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(leaderboard_ranking_batch)
 
+if (LEADERBOARD_BUILD_BENCHMARKS)
+    add_executable(leaderboard_bench benchmarks/benchmark.c)
+    target_link_libraries(leaderboard_bench PRIVATE Leaderboard::leaderboard)
+    leaderboard_apply_dev_options(leaderboard_bench)
+    set_target_properties(leaderboard_bench PROPERTIES C_EXTENSIONS OFF)
+    if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(leaderboard_bench PRIVATE -pedantic-errors)
+    endif ()
+endif ()
+
 if (BUILD_TESTING)
     add_subdirectory(tests)
+    if (LEADERBOARD_BUILD_BENCHMARKS)
+        # Correctness-only smoke check. Never gate CI on wall/CPU times.
+        add_test(NAME benchmark_smoke COMMAND leaderboard_bench 1000 1)
+    endif ()
 endif ()
 
 # Build-tree consumers keep using Leaderboard::leaderboard; installed consumers
