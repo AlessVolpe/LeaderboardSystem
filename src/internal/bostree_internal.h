@@ -6,6 +6,7 @@
  * Based on https://github.com/phillipberndt/bostree (GPLv3 or later).
  * Internal only: never install or include from application code.
  */
+
 #ifndef LEADERBOARD_BOSTREE_INTERNAL_H
 #define LEADERBOARD_BOSTREE_INTERNAL_H
 
