@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ranking.h"
+#include "mtwister.h"
 #include "hashmap_typed.h"
 
 HASHMAP_TYPED_DEFINE(external_score_map, char, int)
@@ -30,5 +31,14 @@ int main(void) {
     ok = external_score_map_put(&map, "participant", &points) == 0 &&
          external_score_map_get(&map, "participant") == &points;
     external_score_map_cleanup(&map);
+    if (!ok) return EXIT_FAILURE;
+
+    /* Test that the installed headers expose modern names and the exported
+     * library provides the standards-compatible MT19937 entry points. */
+    mtwister_t *rng = mtwister_new(UINT32_C(5489));
+    if (rng == NULL) return EXIT_FAILURE;
+    ok = mtwister_next_u32(rng) == UINT32_C(3499211612) &&
+         mtwister_next_u32(rng) == UINT32_C(581869302);
+    mtwister_destroy(rng);
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

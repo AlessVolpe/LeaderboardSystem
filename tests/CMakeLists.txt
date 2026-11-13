@@ -217,3 +217,28 @@ if (LEADERBOARD_BUILD_FUZZERS)
         leaderboard_apply_dev_options(fuzz_${container}_libfuzzer)
     endforeach ()
 endif ()
+
+# 3.0.9: frozen historical MTwister vectors and published MT19937 vectors.
+add_executable(test_mtwister_vectors test_mtwister_vectors.c)
+target_link_libraries(test_mtwister_vectors PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_mtwister_vectors)
+set_target_properties(test_mtwister_vectors PROPERTIES C_EXTENSIONS OFF)
+add_test(NAME mtwister_reference_vectors COMMAND test_mtwister_vectors)
+
+# The batch example is a runnable public-API integration test (no stdin).
+add_test(NAME ranking_batch_example COMMAND leaderboard_ranking_batch)
+
+# Standalone ISO C11 translation units for installed public headers.
+# In contrast to a combined include test, this also catches missing headers.
+foreach (header IN ITEMS
+        bostree commons hashmap_base hashmap_typed mtwister player ranking)
+    add_library(header_c11_${header} OBJECT test_public_header_c11.c)
+    target_include_directories(header_c11_${header} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+    target_compile_definitions(header_c11_${header} PRIVATE
+        "LEADERBOARD_PUBLIC_HEADER=\"${header}.h\"")
+    set_target_properties(header_c11_${header} PROPERTIES C_EXTENSIONS OFF)
+    leaderboard_apply_dev_options(header_c11_${header})
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(header_c11_${header} PRIVATE -pedantic-errors)
+    endif()
+endforeach()

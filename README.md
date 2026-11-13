@@ -266,6 +266,24 @@ No production algorithms or public ranking operations are changed. See
 [docs/failure-adversarial-contract.md](docs/failure-adversarial-contract.md)
 for the tested invariants, fuzzing commands, and limitations.
 
+### 3.0.9: Portable integration and MT19937 reproducibility
+
+The CMake source and installed package version are now 3.0.9. A new
+non-interactive `leaderboard_ranking_batch` example exercises the public ranking
+API, including deterministic score updates, tie-breaking, and removals.
+Installed-consumer verification now requires `Leaderboard 3.0.9`, checks the
+standard MT19937 seed behavior, and still uses no private headers.
+
+MTwister now offers additive, C11-friendly `mtwister_t` and
+`mtwister_new`/`mtwister_seed_standard` APIs matching published MT19937
+reference vectors. The historical `MTRand`/`seedRand`/`genRandLong` sequence
+remains intact for compatibility. Strict C11 public-header compilation checks
+and independent seed-vector regressions run as part of the normal build.
+
+See [docs/portability-prng-3.0.9.md](docs/portability-prng-3.0.9.md) for
+seeding guarantees, non-cryptographic limitations, API naming, GNU-only legacy
+wrappers, reproducibility, and external installation instructions.
+
 ## License and third-party notices
 
 This project is distributed under the [GNU General Public License, version 3](LICENSE).

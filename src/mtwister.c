@@ -35,6 +35,28 @@ static void m_seedRand(MTRand *rand, const uint32_t seed) {
  * creates a new random number generator from a given seed
  * The caller owns the allocated state and must free it.
  */
+/* Uses the MT19937 2002 single-word seeding recurrence. Unlike seedRand,
+ * this has a published, cross-language reference output sequence. */
+void mtwister_seed_standard(mtwister_t *rng, const uint32_t seed) {
+    if (rng == NULL) return;
+    rng->mt[0] = seed;
+    for (uint32_t i = 1; i < STATE_VECTOR_LENGTH; ++i) {
+        const uint32_t previous = rng->mt[i - 1U];
+        rng->mt[i] = UINT32_C(1812433253) * (previous ^ (previous >> 30)) + i;
+    }
+    rng->index = STATE_VECTOR_LENGTH;
+}
+
+mtwister_t *mtwister_new(const uint32_t seed) {
+    mtwister_t *rng = malloc(sizeof(*rng));
+    if (rng != NULL) mtwister_seed_standard(rng, seed);
+    return rng;
+}
+
+void mtwister_destroy(mtwister_t *rng) {
+    free(rng);
+}
+
 MTRand *seedRand(const uint32_t seed) {
     MTRand *rand = malloc(sizeof(MTRand));
     m_seedRand(rand, seed);
@@ -78,4 +100,14 @@ uint32_t genRandLong(MTRand *rand) {
  */
 double genRand(MTRand *rand) {
     return (double) genRandLong(rand) / 0xffffffff;
+}
+
+/* Named aliases for new clients; they intentionally use the same algorithm
+ * as the corresponding historical generation functions. */
+uint32_t mtwister_next_u32(mtwister_t *rng) {
+    return genRandLong(rng);
+}
+
+double mtwister_next_double(mtwister_t *rng) {
+    return genRand(rng);
 }
