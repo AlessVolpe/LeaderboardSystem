@@ -4,9 +4,11 @@
 
 As a part of my [Fantacalcio Dummy System](https://github.com/AlessVolpe/FantacalcioDummySystem.git) project, I wanted to experiment with type-safe and efficient data structures to implement a ranking algorithm.
 
-The ranking happens in two different moments: when a player is added to the system, they're first placed in a hashmap; when the system needs to compile the leaderboard, players are moved to a self-balancing AVL tree.
+The original CLI first stores teams in a hashmap and later transfers them to a **name-ordered** AVL tree. The reusable `ranking_t` API, implemented since 3.0.5, instead maintains a hashmap index and an order-statistics AVL tree simultaneously to support dynamic score updates and rank queries. The CLI remains a demonstration, not a Fantacalcio fixture simulator.
 
-This is the approach currently demonstrated by the CLI prototype. The reusable ranking abstraction is still under development.
+## Team/player scoring model
+
+The public `player_t` is now a team record with a borrowed `name`, simulation-dependent `uint32_t championship_points`, and a simulation-independent `uint32_t total_points_tenths`. The latter stores a nonnegative one-decimal fantasy score exactly (for example, `24835` represents `2483.5`). New constructors, checked championship-point updates and a reset helper support repeated fixture permutations without changing the season total. The generic `ranking_t` score and ordering contract is unchanged. See [docs/team-player-model.md](docs/team-player-model.md) for ownership, migration, scaling and integration boundaries.
 
 ## Player pool or hashmap
 

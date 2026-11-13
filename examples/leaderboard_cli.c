@@ -22,7 +22,7 @@ _Static_assert(MAX_NAME_SIZE == 25, "Keep the input width synchronized with MAX_
 
 /* Names are owned by player_names; the tree owns only player_t allocations. */
 static void _tree_free(BOSNode *node) {
-    free(bostree_node_data(node));
+    player_destroy(bostree_node_data(node));
 }
 
 static int _compare_names(const void *lhs, const void *rhs) {
@@ -49,18 +49,39 @@ static char **_name_players(size_t count) {
     char **names = calloc(count, sizeof(*names));
     if (names == NULL) return NULL;
 
+    /* scanf() used for the count leaves its newline in stdin. */
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF) {}
+
     for (size_t i = 0; i < count; ++i) {
         names[i] = malloc(MAX_NAME_SIZE);
         if (names[i] == NULL) {
             _free_player_names(count, names);
             return NULL;
         }
-        printf("Insert player name: \n");
-        /* MAX_NAME_SIZE is 25, including the terminating NUL. */
-        if (scanf("%24s", names[i]) != 1) {
+        printf("Insert team name: \n");
+        /* fgets preserves spaces in team names (e.g. Brigate Ebosse).
+         * Detect and reject overlong lines rather than treating the remainder
+         * as the next team's name. */
+        char line[MAX_NAME_SIZE + 2U];
+        if (fgets(line, sizeof(line), stdin) == NULL) {
             _free_player_names(count, names);
             return NULL;
         }
+        char *newline = strchr(line, '\n');
+        if (newline != NULL) {
+            *newline = '\0';
+        } else if (!feof(stdin)) {
+            while ((ch = getchar()) != '\n' && ch != EOF) {}
+            _free_player_names(count, names);
+            return NULL;
+        }
+        size_t len = strlen(line);
+        if (len == 0U || len >= MAX_NAME_SIZE) {
+            _free_player_names(count, names);
+            return NULL;
+        }
+        memcpy(names[i], line, len + 1U);
     }
     return names;
 }
@@ -96,10 +117,13 @@ int main(void) {
 
     for (size_t i = 0; i < count; ++i) {
         char *id = uuid_generate();
-        player_t *player = player_create(names[i]);
+        /* Synthetic season aggregate is fixed for this demo fixture.
+         * The real Python orchestrator will supply recorded season totals. */
+        player_t *player = player_create_with_total(
+            names[i], UINT32_C(20000) + genRandLong(random) % UINT32_C(10000));
         if (id == NULL || player == NULL) {
             free(id);
-            free(player);
+            player_destroy(player);
             fprintf(stderr, "Unable to allocate player.\n");
             goto cleanup;
         }
@@ -107,7 +131,7 @@ int main(void) {
         const int status = player_pool_put(&pool, id, player);
         if (status != 0) {
             fprintf(stderr, "Unable to store player %s (error %d).\n", names[i], status);
-            free(player);
+            player_destroy(player);
             free(id);
             goto cleanup;
         }
@@ -115,13 +139,22 @@ int main(void) {
         printf("Added player %s [%s].\n", player->name, id);
     }
 
-    printf("\nFormat: player_name[player_id] with score n\n");
+    printf("\nFormat: team_name[team_id], championship points, fixed season total\n");
     player_pool_iterator_t it = player_pool_iter(&pool);
     while (player_pool_iter_valid(&it)) {
         const char *key = player_pool_iter_key(&it);
         player_t *data = player_pool_iter_value(&it);
-        player_adding_points(data, (uint32_t)(genRand(random) * 100.0));
-        printf("Player: %s[%s] with score %" PRIu32 "\n", data->name, key, data->score);
+        /* One illustrative match result: win (3), draw (1), loss (0). */
+        const uint32_t outcome = genRandLong(random) % 3U;
+        const uint32_t award = outcome == 0U ? 3U : (outcome == 1U ? 1U : 0U);
+        if (player_add_championship_points(data, award) != 0) {
+            fprintf(stderr, "Unable to update championship points.\n");
+            goto cleanup;
+        }
+        printf("Team: %s[%s] with %" PRIu32
+               " championship points; season fantasy total %" PRIu32 ".%" PRIu32 "\n",
+               data->name, key, data->championship_points,
+               data->total_points_tenths / 10U, data->total_points_tenths % 10U);
         (void)player_pool_iter_next(&it);
     }
 
@@ -132,16 +165,16 @@ int main(void) {
         (void)player_pool_iter_remove(&it);
         BOSNode *node = bostree_insert(leaderboard, player->name, player);
         if (node == NULL) {
-            free(player);
+            player_destroy(player);
             fprintf(stderr, "Unable to insert leaderboard node.\n");
             goto cleanup;
         }
         if (bostree_node_data(node) != player) {
             /* Comparator-equal names share a ranking entry. */
             printf("Duplicate player name %s ignored.\n", player->name);
-            free(player);
+            player_destroy(player);
         } else {
-            printf("Inserted player %s with %" PRIu32 " points.\n", player->name, player->score);
+            printf("Inserted player %s with %" PRIu32 " points.\n", player->name, player->championship_points);
         }
     }
 
@@ -156,7 +189,7 @@ cleanup:
     while (player_pool_iter_valid(&it)) {
         player_t *player = player_pool_iter_value(&it);
         (void)player_pool_iter_remove(&it);
-        free(player);
+        player_destroy(player);
     }
     player_pool_cleanup(&pool);
     bostree_destroy(leaderboard);

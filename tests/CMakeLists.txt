@@ -242,3 +242,18 @@ foreach (header IN ITEMS
         target_compile_options(header_c11_${header} PRIVATE -pedantic-errors)
     endif()
 endforeach()
+
+# Team model: fixed season aggregate and simulation-dependent league points.
+add_executable(test_player test_player.c)
+target_link_libraries(test_player PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_player)
+set_target_properties(test_player PROPERTIES C_EXTENSIONS OFF)
+add_test(NAME player_model_contract COMMAND test_player)
+
+# Team names are human-readable, including embedded spaces.
+add_test(NAME leaderboard_cli_team_names COMMAND ${CMAKE_COMMAND}
+    "-DCLI=$<TARGET_FILE:leaderboard_cli>"
+    "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/cli_team_names.txt"
+    -DEXPECT_INSERTED=5
+    -DEXPECT_DUPLICATES=0
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/run_leaderboard_cli.cmake)
