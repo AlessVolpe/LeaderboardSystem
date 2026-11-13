@@ -17,6 +17,7 @@
 extern "C" {
 #endif
 
+#include <errno.h>
 #include <stddef.h>
 #include "hashmap_base.h"
 
@@ -82,7 +83,7 @@ extern "C" {
  */
 #define HASHMAP(key_type, data_type)                                                                        \
     struct {                                                                                                \
-        struct hashmap_base map_base;                                                                       \
+        hashmap_base_t *map_base;                                                                       \
         struct {                                                                                            \
             const key_type *t_key;                                                                          \
             data_type *t_data;                                                                              \
@@ -92,7 +93,7 @@ extern "C" {
             void (*t_key_free_func)(key_type *);                                                            \
             int (*t_foreach_func)(const key_type*, data_type*, void*);                                      \
             struct {                                                                                        \
-                 hashmap_base* iter_map;                                                                    \
+                 hashmap_base_t* iter_map;                                                                    \
                     hashmap_entry* iter_pos;                                                                \
                 struct {                                                                                    \
                     const key_type* t_key;                                                                  \
@@ -115,6 +116,7 @@ extern "C" {
  *
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
+ *   Returns 0 on success, -ENOMEM if handle allocation fails. Check it.
  *   size_t (*hash_func)(const <key_type> *) - hash function that should return an
  *              even distribution of numbers between 0 and SIZE_MAX varying on the key provided.
  *   int (*compare_func)(const <key_type> *, const <key_type> *) - key comparison function that
@@ -128,12 +130,13 @@ extern "C" {
  *   size_t hashmap_hash_string_i(const char *key) - non-case sensitive string hash function.
  *           Pass this directly to hashmap_init().
  */
-#define hashmap_init(h, hash_func, compare_func) do {                                                       \
+#define hashmap_init(h, hash_func, compare_func) ({                                                         \
     typeof((h)->map_types->t_hash_func) __map_hash = (hash_func);                                           \
     typeof((h)->map_types->t_compare_func) __map_compare = (compare_func);                                  \
-    hashmap_base_init(&(h)->map_base, (size_t (*)(const void*))__map_hash,                                  \
+    (h)->map_base = hashmap_base_new((size_t (*)(const void*))__map_hash,                                   \
         (int (*)(const void*, const void*))__map_compare);                                                  \
-} while (0)
+    (h)->map_base == NULL ? -ENOMEM : 0;                                                                    \
+})
 
 /*
  * Free the hashmap and all associated memory.
@@ -141,8 +144,10 @@ extern "C" {
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
-#define hashmap_cleanup(h)                                                                                  \
-    hashmap_base_cleanup(&(h)->map_base)
+#define hashmap_cleanup(h) do {                                                                            \
+    hashmap_base_destroy((h)->map_base);                                                                   \
+    (h)->map_base = NULL;                                                                                   \
+} while (0)
 
 /*
  * Enable internal memory allocation and management for hash keys.
@@ -156,7 +161,7 @@ extern "C" {
 #define hashmap_set_key_alloc_funcs(h, key_dup_func, key_free_func) ({                                    \
     typeof((h)->map_types->t_key_dup_func) __map_key_dup = (key_dup_func);                                  \
     typeof((h)->map_types->t_key_free_func) __map_key_free = (key_free_func);                               \
-    hashmap_base_set_key_alloc_funcs(&(h)->map_base, (void *(*)(const void *))__map_key_dup,                \
+    hashmap_base_set_key_alloc_funcs((h)->map_base, (void *(*)(const void *))__map_key_dup,                \
     (void(*)(void *))__map_key_free);                                                                       \
 })
 
@@ -167,7 +172,7 @@ extern "C" {
  *   const HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
 #define hashmap_size(h)                                                                                     \
-    ((typeof((h)->map_base.size))(h)->map_base.size)
+    hashmap_base_size((h)->map_base)
 
 /*
  * Set the hashmap's initial allocation size such that no rehashes are
@@ -180,7 +185,7 @@ extern "C" {
  * Returns 0 on success, or -errno on failure.
  */
 #define hashmap_reserve(h, capacity)                                                                        \
-    hashmap_base_reserve(&(h)->map_base, capacity)
+    hashmap_base_reserve((h)->map_base, capacity)
 
 /*
  * Add a new entry to the hashmap. If an entry with a matching key
@@ -196,7 +201,7 @@ extern "C" {
 #define hashmap_put(h, key, data) ({                                                                        \
     typeof((h)->map_types->t_key) __map_key = (key);                                                        \
     typeof((h)->map_types->t_data) __map_data = (data);                                                     \
-    hashmap_base_put(&(h)->map_base, (const void *)__map_key, (void *)__map_data);                          \
+    hashmap_base_put((h)->map_base, (const void *)__map_key, (void *)__map_data);                          \
 })
 
 /*
@@ -210,7 +215,7 @@ extern "C" {
  */
 #define hashmap_get(h, key) ({                                                                              \
     typeof((h)->map_types->t_key) __map_key = (key);                                                        \
-    (typeof((h)->map_types->t_data))hashmap_base_get(&(h)->map_base, (const void *)__map_key);              \
+    (typeof((h)->map_types->t_data))hashmap_base_get((h)->map_base, (const void *)__map_key);              \
 })
 
 /*
@@ -228,7 +233,7 @@ extern "C" {
  */
 #define hashmap_remove(h, key) ({                                                                       \
     typeof((h)->map_types->t_key) __map_key = (key);                                                    \
-    (typeof((h)->map_types->t_data))hashmap_base_remove(&(h)->map_base, (const void*)__map_key);        \
+    (typeof((h)->map_types->t_data))hashmap_base_remove((h)->map_base, (const void*)__map_key);        \
 })
 
 /*
@@ -237,7 +242,7 @@ extern "C" {
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
-#define hashmap_clear(h) hashmap_base_clear(&(h)->map_base)
+#define hashmap_clear(h) hashmap_base_clear((h)->map_base)
 
 /*
  * Remove all entries and reset the hash table to its initial size.
@@ -245,7 +250,7 @@ extern "C" {
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
-#define hashmap_reset(h) hashmap_base_reset(&(h)->map_base)
+#define hashmap_reset(h) hashmap_base_reset((h)->map_base)
 
 /*
  * Return an iterator for this hashmap. The iterator is a type-specific
@@ -254,7 +259,7 @@ extern "C" {
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
-#define hashmap_iter(h) ((HASHMAP_ITER(*(h))){ .iter_map = &(h)->map_base, .iter_pos = hashmap_base_iter(&(h)->map_base, NULL) })
+#define hashmap_iter(h) ((HASHMAP_ITER(*(h))){ .iter_map = (h)->map_base, .iter_pos = hashmap_base_iter((h)->map_base, NULL) })
 
 /*
  * Return true if an iterator is valid and safe to use.
@@ -396,7 +401,7 @@ extern "C" {
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
-#define hashmap_load_factor(h) hashmap_base_load_factor(&(h)->map_base)
+#define hashmap_load_factor(h) hashmap_base_load_factor((h)->map_base)
 
 /*
  * Return the number of collisions for this key.
@@ -410,7 +415,7 @@ extern "C" {
  */
 #define hashmap_collisions(h, key) ({                                                                       \
     typeof((h)->map_types->t_key) __map_key = (key);                                                        \
-    hashmap_base_collisions(&(h)->map_base, (const void *)__map_key);                                       \
+    hashmap_base_collisions((h)->map_base, (const void *)__map_key);                                       \
 })
 
 /*
@@ -419,7 +424,7 @@ extern "C" {
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
-#define hashmap_collisions_mean(h) hashmap_base_collisions_mean(&(h)->map_base)
+#define hashmap_collisions_mean(h) hashmap_base_collisions_mean((h)->map_base)
 
 /*
  * Return the variance between entry collisions. The higher the variance,
@@ -428,7 +433,7 @@ extern "C" {
  * Parameters:
  *   HASHMAP(<key_type>, <data_type>) *h - hashmap pointer
  */
-#define hashmap_collisions_variance(h) hashmap_base_collisions_variance(&(h)->map_base)
+#define hashmap_collisions_variance(h) hashmap_base_collisions_variance((h)->map_base)
 
 #ifdef __cplusplus
 }

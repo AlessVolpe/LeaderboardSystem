@@ -1,5 +1,5 @@
 /*
- * LeaderboardSystem hashmap (milestone 3.0.2).
+ * LeaderboardSystem hashmap (milestones 3.0.2, 3.0.6).
  * Copyright (c) 2016-2020 David Leeds <davidesleeds@gmail.com>
  * Modifications Copyright (C) 2024-2026 Alessandro Volpe
  * SPDX-License-Identifier: MIT AND GPL-3.0-only
@@ -14,7 +14,7 @@
 // This component owns its entry array and, optionally, duplicated keys.
 // Values are always borrowed; see docs/hashmap-contract.md.
 
-#include "hashmap_base.h"
+#include "hashmap_internal.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -22,6 +22,36 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Public lifecycle: heap handles prevent clients from depending on storage
+ * layout or manufacturing partially initialized hashmap_base objects. */
+hashmap_base_t *hashmap_base_new(size_t (*hash_func)(const void *),
+                                int (*compare_func)(const void *, const void *)) {
+    if (hash_func == NULL || compare_func == NULL) return NULL;
+    hashmap_base_t *hb = malloc(sizeof(*hb));
+    if (hb == NULL) return NULL;
+    hashmap_base_init(hb, hash_func, compare_func);
+    return hb;
+}
+
+void hashmap_base_destroy(hashmap_base_t *hb) {
+    if (hb == NULL) return;
+    hashmap_base_cleanup(hb);
+    free(hb);
+}
+
+size_t hashmap_base_size(const hashmap_base_t *hb) {
+    return hb == NULL ? 0U : hb->size;
+}
+
+size_t hashmap_base_capacity(const hashmap_base_t *hb) {
+    return hb == NULL ? 0U : hb->table_size;
+}
+
+size_t hashmap_base_initial_capacity(const hashmap_base_t *hb) {
+    return hb == NULL ? 0U : hb->table_size_init;
+}
+
 
 #define HASHMAP_SIZE_MIN 32u
 #define HASHMAP_SIZE_DEFAULT 128u

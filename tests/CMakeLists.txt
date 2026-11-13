@@ -77,3 +77,12 @@ add_executable(test_bostree_public_api test_bostree_public_api.c)
 target_link_libraries(test_bostree_public_api PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(test_bostree_public_api)
 add_test(NAME bostree_public_api COMMAND test_bostree_public_api)
+
+# The base regressions inspect the table as an explicitly private white-box test.
+target_include_directories(test_hashmap_regressions PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/internal)
+
+add_executable(test_hashmap_public_api test_hashmap_public_api.c)
+target_link_libraries(test_hashmap_public_api PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_hashmap_public_api)
+add_test(NAME hashmap_public_api COMMAND test_hashmap_public_api)

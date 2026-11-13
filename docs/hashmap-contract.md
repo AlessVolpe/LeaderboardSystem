@@ -67,3 +67,18 @@ seed is fixed so failures are reproducible. When collecting performance
 results for a thesis, record compiler, optimization level, CPU, workload
 size, collision profile and random seed. Benchmark against at least one
 independent implementation and include confidence intervals and variance.
+
+## API encapsulation (3.0.6)
+
+The preceding representation notes describe the implementation invariants
+established in 3.0.2. Since milestone 3.0.6, the public `hashmap_base_t`
+and `hashmap_entry_t` types are opaque. Stack allocation, direct table-field
+access and the old public `hashmap_base_init`/`hashmap_base_cleanup` lifecycle
+are no longer supported. Use `hashmap_base_new`/`hashmap_base_destroy` and the
+public inspection functions instead. The `HASHMAP` typed wrapper still
+supports its existing operations but now owns a heap handle, and its
+`hashmap_init` macro **returns an error code that must be checked**.
+
+The underlying probing, ownership, collision, and iteration semantics are
+unchanged. For migration and API boundaries see
+[`api-encapsulation-contract.md`](api-encapsulation-contract.md).

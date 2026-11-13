@@ -11,8 +11,8 @@ The CMake build compiles three *object-library* components independently:
 
 | Internal target | Sources | Dependencies |
 | --- | --- | --- |
-| `leaderboard_containers_obj` | `hashmap.c`, `bostree.c` | Standard C, private BOSTree representation |
-| `leaderboard_ranking_obj` | `ranking.c` | Public hashmap base and BOSTree APIs |
+| `leaderboard_containers_obj` | `hashmap.c`, `bostree.c` | Standard C, private hashmap and BOSTree representations |
+| `leaderboard_ranking_obj` | `ranking.c` | Public opaque hashmap base and BOSTree APIs |
 | `leaderboard_legacy_obj` | `mtwister.c`, `player.c`, `commons.c` | Legacy utilities only |
 
 CMake combines these object files into the unchanged `leaderboard` **static
@@ -56,13 +56,49 @@ not otherwise changed, but this version does not promise a stable ABI. Only
 newly compiled clients against the new public header are within the tested
 compatibility boundary.
 
-## Hashmap boundary (still deferred)
+## Hashmap representation and typed API
 
-The typed hashmap macro embeds `hashmap_base`, so the hashmap representation
-cannot simply be made opaque without redesigning its storage and macro API.
-Direct access to hashmap bookkeeping remains possible in 3.0.6. Rather than
-introducing an untested breaking migration, opaque hashmap handles and removal
-of GNU statement-expression macros are deferred to later milestones.
+`include/hashmap_base.h` now forward-declares `hashmap_base_t` and
+`hashmap_entry_t`. The actual hash table, open-addressing entry storage,
+collision metadata and callback pointers are defined solely in
+`src/internal/hashmap_internal.h`. Public consumers cannot allocate a
+`hashmap_base_t` on the stack or access any of these fields.
+
+`hashmap_base_new`/`hashmap_base_destroy` manage heap-owned handles;
+`hashmap_base_size`, `hashmap_base_capacity`, and
+`hashmap_base_initial_capacity` expose read-only inspection. Both original
+`hashmap_base` and `hashmap_entry` remain as **incomplete-type aliases**, not
+as publicly defined structs. The old stack-based `hashmap_base_init` and
+`hashmap_base_cleanup` are internal helpers and no longer public functions.
+
+`HASHMAP(key_type, data_type)` still supports the original typed operations
+and foreach iteration macros, but now stores a heap-owned `map_base` handle.
+`hashmap_init` returns 0 or `-ENOMEM`, and callers must check that result;
+`hashmap_cleanup` releases the handle and resets the pointer to NULL.
+The `map_base` member remains exposed *in the typed macro's wrapper* for
+compatibility, but it no longer exposes the underlying table representation.
+GNU `typeof` and statement expressions are retained for the existing typed
+macro API; eliminating them is future work. In particular, the legacy macros
+cast type-specific hash/comparator function pointers to `const void *`
+callback signatures. These incompatible function-pointer calls are not
+strictly portable C: Clang's `-fsanitize=function` detects them for the
+string/`strcmp` callbacks used by the existing CLI and typed tests. This
+predates the opaque-handle refactor. A redesigned, type-correct callback
+adapter interface is deferred; direct users of `hashmap_base_new` must supply
+functions with the exact generic signatures to avoid this issue.
+
+**Compatibility:** low-level clients that used `hashmap_base` as a complete
+stack type, embedded it, or accessed table slots must migrate to the heap
+lifecycle and accessor functions. This is an intentional source/ABI break,
+not a claim of 2.x binary compatibility. Iterator entry pointers remain
+borrowed and invalidated by rehash, clear, reset or deletion. As before,
+only the safe foreach variant may remove its current entry. Hashing,
+comparison, key-ownership, and finalization semantics are unchanged.
+
+The `hashmap_public_api` test includes only public headers and validates
+opaque handles, insertion/duplicate behavior, iterator access, key-copy
+ownership and typed wrapper operations. Existing `hashmap_regressions`
+compile with the explicit private header to retain white-box assertions.
 
 ## Verification and release scope
 
@@ -75,5 +111,5 @@ Ranking's existing regression and differential tests must remain green.
 
 No changes to algorithmic complexity are intended in this milestone. The
 new accessors take O(1) time. Allocation-failure injection, an installable
-modular CMake package, stronger hashmap encapsulation, and a comprehensive
+modular CMake package, removal of GNU hashmap macro extensions, and a comprehensive
 ABI compatibility policy remain deferred.

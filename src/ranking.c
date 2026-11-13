@@ -28,7 +28,7 @@ typedef struct ranking_order_key {
 } ranking_order_key_t;
 
 typedef struct ranking {
-    hashmap_base by_id;
+    hashmap_base_t *by_id;
     BOSTree *by_rank;
 } ranking_t;
 
@@ -66,10 +66,14 @@ static ranking_order_key_t *ranking_make_key(const char *id, int64_t score) {
 ranking_t *ranking_new(void) {
     ranking_t *ranking = malloc(sizeof(*ranking));
     if (ranking == NULL) return NULL;
-    hashmap_base_init(&ranking->by_id, ranking_hash_id, ranking_compare_id);
+    ranking->by_id = hashmap_base_new(ranking_hash_id, ranking_compare_id);
+    if (ranking->by_id == NULL) {
+        free(ranking);
+        return NULL;
+    }
     ranking->by_rank = bostree_new(ranking_compare_score, ranking_free_order_key);
     if (ranking->by_rank == NULL) {
-        hashmap_base_cleanup(&ranking->by_id);
+        hashmap_base_destroy(ranking->by_id);
         free(ranking);
         return NULL;
     }
@@ -80,22 +84,22 @@ void ranking_destroy(ranking_t *ranking) {
     if (ranking == NULL) return;
     /* Finalizes tree-owned order keys before releasing their borrowed IDs. */
     bostree_destroy(ranking->by_rank);
-    for (hashmap_entry *it = hashmap_base_iter(&ranking->by_id, NULL);
-         it != NULL; (void)hashmap_base_iter_next(&ranking->by_id, &it)) {
+    for (hashmap_entry *it = hashmap_base_iter(ranking->by_id, NULL);
+         it != NULL; (void)hashmap_base_iter_next(ranking->by_id, &it)) {
         free(hashmap_base_iter_get_data(it));
     }
-    hashmap_base_cleanup(&ranking->by_id);
+    hashmap_base_destroy(ranking->by_id);
     free(ranking);
 }
 
 size_t ranking_size(const ranking_t *ranking) {
-    return ranking == NULL ? 0U : ranking->by_id.size;
+    return ranking == NULL ? 0U : hashmap_base_size(ranking->by_id);
 }
 
 int ranking_upsert(ranking_t *ranking, const char *id, int64_t score) {
     if (ranking == NULL || id == NULL || id[0] == '\0') return -EINVAL;
 
-    ranking_entry_t *entry = hashmap_base_get(&ranking->by_id, id);
+    ranking_entry_t *entry = hashmap_base_get(ranking->by_id, id);
     if (entry != NULL) {
         if (entry->score == score) return 0;
         /* Temporarily insert a second tree node for the same ID. The new
@@ -136,7 +140,7 @@ int ranking_upsert(ranking_t *ranking, const char *id, int64_t score) {
         return -ENOMEM;
     }
 
-    const int result = hashmap_base_put(&ranking->by_id, entry->id, entry);
+    const int result = hashmap_base_put(ranking->by_id, entry->id, entry);
     if (result != 0) {
         /* The map has not accepted the borrowed identifier. Undo the tree
          * insertion first, then release the entry that owns the ID. */
@@ -149,7 +153,7 @@ int ranking_upsert(ranking_t *ranking, const char *id, int64_t score) {
 
 int ranking_remove(ranking_t *ranking, const char *id) {
     if (ranking == NULL || id == NULL || id[0] == '\0') return -EINVAL;
-    ranking_entry_t *entry = hashmap_base_remove(&ranking->by_id, id);
+    ranking_entry_t *entry = hashmap_base_remove(ranking->by_id, id);
     if (entry == NULL) return -ENOENT;
     bostree_remove(ranking->by_rank, entry->node);
     free(entry);
@@ -159,7 +163,7 @@ int ranking_remove(ranking_t *ranking, const char *id) {
 int ranking_get(const ranking_t *ranking, const char *id,
                 int64_t *score, size_t *rank) {
     if (ranking == NULL || id == NULL || id[0] == '\0') return -EINVAL;
-    const ranking_entry_t *entry = hashmap_base_get(&ranking->by_id, id);
+    const ranking_entry_t *entry = hashmap_base_get(ranking->by_id, id);
     if (entry == NULL) return -ENOENT;
     if (score != NULL) *score = entry->score;
     if (rank != NULL) *rank = (size_t)bostree_rank(entry->node);
