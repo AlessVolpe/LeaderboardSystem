@@ -195,6 +195,22 @@ The legacy CLI also receives a compiler-warning and ownership cleanup: typed pla
 
 The PRNG and UUID utilities receive targeted correctness and resource-handling fixes. CI now treats compiler warnings as errors.
 
+### 3.0.5: Ranking abstraction
+
+The native library now exposes an opaque, domain-neutral ranking API built on
+the hashmap and BOSTree. Participants have unique string identifiers and
+signed integer scores; rankings are ordered by descending score with a
+stable, deterministic identifier tie-breaker. Scores can be updated without
+rebuilding the entire ranking, while rank lookup and selection remain
+logarithmic in the number of participants.
+
+Fixed-seed regression and differential tests compare updates, deletions,
+ordering and rank queries against an independently sorted reference model.
+The API, failure and ownership contracts, complexity bounds and limitations
+are described in [docs/ranking-contract.md](docs/ranking-contract.md).
+The existing example CLI remains unchanged; Fantacalcio-specific scoring and
+simulation logic are deferred to later milestones.
+
 ## License and third-party notices
 
 This project is distributed under the [GNU General Public License, version 3](LICENSE).

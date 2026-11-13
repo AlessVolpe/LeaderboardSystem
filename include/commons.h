@@ -1,7 +1,10 @@
-//
-// Created by aless on 04/03/2024.
-// Header copied from the common.h used in my Sistemi di Calcolo II exam in university
-//
+/*
+ * LeaderboardSystem common definitions and error helpers (legacy).
+ * Copyright (C) 2024-2026 Alessandro Volpe
+ * Originally adapted from common.h used for the Sistemi di Calcolo II
+ * university exam (original header dated 04/03/2024).
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
 
 #ifndef ERROR_HANDLING_H
 #define ERROR_HANDLING_H

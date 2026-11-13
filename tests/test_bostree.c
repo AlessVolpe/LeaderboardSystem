@@ -1,3 +1,8 @@
+/*
+ * LeaderboardSystem BOSTree smoke tests (milestone 3.0.1).
+ * Copyright (C) 2026 Alessandro Volpe
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

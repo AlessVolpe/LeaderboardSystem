@@ -1,8 +1,9 @@
 /*
- * Self-Balancing order statistic tree
+ * LeaderboardSystem BOSTree (milestones 3.0.3-3.0.4).
  *
  * Copyright (c) 2017, Phillip Berndt
  * Modifications Copyright (C) 2024-2026 Alessandro Volpe
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * Based on https://github.com/phillipberndt/bostree
  * Original implementation: GNU General Public License, version 3
@@ -23,10 +24,6 @@
  *
  * See THIRD_PARTY_NOTICES.md for upstream attribution and modification history.
  */
-
-//
-// Created by aless on 09/03/2024.
-//
 
 #ifndef BOSTREE_H
 #define BOSTREE_H
