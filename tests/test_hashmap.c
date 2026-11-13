@@ -16,7 +16,7 @@ int main(void) {
     map;
     int value = 42;
 
-    hashmap_init(&map, hashmap_hash_string, strcmp);
+    CHECK(hashmap_init(&map, hashmap_hash_string, strcmp) == 0);
 
     CHECK(hashmap_put(&map, "alpha", &value) == 0);
     CHECK(hashmap_size(&map) == 1);

@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "hashmap_base.h"
+#include "hashmap_internal.h"
 
 /* CHECK must remain active in Release builds (assert disappears under NDEBUG). */
 #define CHECK(condition) do { \

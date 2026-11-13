@@ -30,7 +30,7 @@ int main(void) {
     HASHMAP(char, int)
     map;
     int values[] = {10, 20, 30, 40};
-    hashmap_init(&map, hashmap_hash_string, strcmp);
+    CHECK(hashmap_init(&map, hashmap_hash_string, strcmp) == 0);
     CHECK(hashmap_set_key_alloc_funcs(&map, duplicate_string, release_string) == 0);
     CHECK(hashmap_put(&map, "one", &values[0]) == 0);
     CHECK(hashmap_put(&map, "two", &values[1]) == 0);

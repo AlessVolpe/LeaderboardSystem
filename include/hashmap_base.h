@@ -1,5 +1,5 @@
 /*
- * LeaderboardSystem hashmap (milestone 3.0.2).
+ * LeaderboardSystem hashmap (milestones 3.0.2, 3.0.6).
  * Copyright (c) 2016-2020 David Leeds <davidesleeds@gmail.com>
  * Modifications Copyright (C) 2024-2026 Alessandro Volpe
  * SPDX-License-Identifier: MIT AND GPL-3.0-only
@@ -20,30 +20,25 @@
 extern "C" {
 #endif
 
-typedef struct hashmap_entry {
-    void *key;
-    void *data;
-} hashmap_entry;
+/* Public hashmaps and iterator entries have opaque representations. */
+typedef struct hashmap_base hashmap_base_t;
+typedef struct hashmap_entry hashmap_entry_t;
 
-typedef struct hashmap_base {
-    size_t table_size_init;
-    size_t table_size;
-    size_t size;
-    hashmap_entry *table;
+/* Legacy spellings are retained as pointer-type aliases. The old stack-allocated
+ * hashmap_base and direct-field interface are intentionally no longer public. */
+typedef hashmap_base_t hashmap_base;
+typedef hashmap_entry_t hashmap_entry;
 
-    size_t (*hash)(const void *);
-
-    int (*compare)(const void *, const void *);
-
-    void *(*key_dup)(const void *);
-
-    void (*key_free)(void *);
-} hashmap_base;
-
-void hashmap_base_init(hashmap_base *hb, size_t (*hash_func)(const void *),
-                       int (*compare_func)(const void *, const void *));
-
-void hashmap_base_cleanup(hashmap_base *hb);
+/* Allocate/destroy a hashmap. NULL callbacks or allocation failure return
+ * NULL. Caller owns the handle; borrowed keys and data are not released on destruction unless
+ * key ownership callbacks have been explicitly registered. */
+hashmap_base_t *hashmap_base_new(size_t (*hash_func)(const void *),
+                                int (*compare_func)(const void *, const void *));
+void hashmap_base_destroy(hashmap_base_t *hb);
+size_t hashmap_base_size(const hashmap_base_t *hb);
+/* Inspection only. Capacity is the allocated number of table slots. */
+size_t hashmap_base_capacity(const hashmap_base_t *hb);
+size_t hashmap_base_initial_capacity(const hashmap_base_t *hb);
 
 /* Borrowed keys by default. To own copies, install BOTH callbacks on an empty map.
  * Returns -EINVAL for an incomplete pair, -EBUSY for a non-empty map. */
@@ -59,7 +54,8 @@ void *hashmap_base_get(const hashmap_base *hb, const void *key);
 
 void *hashmap_base_remove(hashmap_base *hb, const void *key);
 
-/* Deprecated: retained temporarily for ABI compatibility with 2.x consumers. */
+/* Deprecated misspelling: retained as a source-level alias for recompiled clients.
+ * No binary compatibility is promised for the 3.0.6 representation change. */
 void *hahsmap_base_remove(hashmap_base *hb, const void *key);
 
 void hashmap_base_clear(hashmap_base *hb);

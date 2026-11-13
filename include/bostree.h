@@ -1,5 +1,5 @@
 /*
- * LeaderboardSystem BOSTree (milestones 3.0.3-3.0.4).
+ * LeaderboardSystem BOSTree public API (milestone 3.0.6).
  *
  * Copyright (c) 2017, Phillip Berndt
  * Modifications Copyright (C) 2024-2026 Alessandro Volpe
@@ -28,84 +28,73 @@
 #ifndef BOSTREE_H
 #define BOSTREE_H
 
+#include <stdbool.h>
 #include <stdio.h>
 
-typedef struct _BOSNode {
-    unsigned int left_child_count;
-    unsigned int right_child_count;
-    unsigned int depth;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    struct _BOSNode *left_child_node;
-    struct _BOSNode *right_child_node;
-    struct _BOSNode *parent_node;
+/* Tree and node representations are private to src/internal/. */
+typedef struct bostree bostree_t;
+typedef struct bostree_node bostree_node_t;
 
-    void *key;
-    void *data;
+typedef int (*bostree_compare_fn_t)(const void *, const void *);
+typedef void (*bostree_free_fn_t)(bostree_node_t *node);
 
-    unsigned char weak_ref_count;
-    unsigned char weak_ref_node_valid;
-} BOSNode;
+/* Source-compatibility aliases for existing pointer-based clients. */
+typedef bostree_t BOSTree;
+typedef bostree_node_t BOSNode;
+typedef bostree_compare_fn_t BOSTree_cmp_func;
+typedef bostree_free_fn_t BOSTree_free_func;
 
-typedef int (*BOSTree_cmp_func)(const void *, const void *);
+/* Unique keys are determined by the comparator. Duplicate insertion returns
+ * the existing node, without replacing its key/data. NULL on invalid input,
+ * allocation failure, or a full (UINT_MAX-sized) tree. */
+bostree_t *bostree_new(bostree_compare_fn_t cmp_func, bostree_free_fn_t free_func);
+void bostree_destroy(bostree_t *tree);
+unsigned int bostree_node_count(const bostree_t *tree);
+bostree_node_t *bostree_insert(bostree_t *tree, void *key, void *data);
 
-typedef void (*BOSTree_free_func)(BOSNode *node);
+/* Requires a live attached node; removes it in O(log n). Retained node
+ * handles are invalidated but remain allocated until last weak_unref.
+ * NULL, invalidated and wrong-tree nodes are ignored. Dangling pointers UB. */
+void bostree_remove(bostree_t *tree, bostree_node_t *node);
 
-typedef struct _BOSTree {
-    BOSNode *root_node;
+/* Despite historical names, weak_refs prolong the node allocation, not the
+ * payload's lifetime. Never unref a reference you did not successfully obtain.
+ * NULL is accepted. The tree argument to unref is ignored for compatibility;
+ * use NULL after destruction. The counter is 8-bit, not thread-safe. */
+bostree_node_t *bostree_node_weak_ref(bostree_node_t *node);
+bostree_node_t *bostree_node_weak_unref(const bostree_t *tree, bostree_node_t *node);
 
-    BOSTree_cmp_func cmp_func;
-    BOSTree_free_func free_func;
-} BOSTree;
+/* Borrowed access to payloads. Both return NULL for a NULL node.
+ * Keys must not be mutated while attached. Accessors do not transfer ownership.
+ * An invalidated retained node has NULL
+ * key/data after disposal. During a free_func callback, the node has already
+ * been marked invalid, but key and data are still available through these
+ * accessors until the callback returns. Never access a dangling node. */
+const void *bostree_node_key(const bostree_node_t *node);
+void *bostree_node_data(const bostree_node_t *node);
+bool bostree_node_is_valid(const bostree_node_t *node);
 
-
-/* Comparator equality identifies a unique key. Inserting a duplicate returns the
- * existing node without changing its key/data. Null return means invalid input,
- * allocation failure, or a full (UINT_MAX-sized) tree. Keys and values are
- * borrowed unless free_func explicitly releases them at node destruction. */
-BOSTree *bostree_new(BOSTree_cmp_func cmp_func, BOSTree_free_func free_func);
-
-void bostree_destroy(BOSTree *tree);
-
-unsigned int bostree_node_count(const BOSTree *tree);
-
-BOSNode *bostree_insert(BOSTree *tree, void *key, void *data);
-
-/* Remove an attached node, rebalance in O(log n), and dispose its payload.
- * Does nothing for NULL, invalidated nodes, or nodes in another live tree.
- * A valid pointer to an attached node is required; dangling pointers are UB.
- * Nodes retained by weak_ref become invalid tombstones on removal. */
-void bostree_remove(BOSTree *tree, BOSNode *node);
-
-/* Retain a live node. Returns NULL if invalid or the 8-bit count is full.
- * The tree holds one reference; callers release only references they acquired.
- * The finalizer is invoked on removal/destroy (not the last external unref).
- * After invalidation the retained node has weak_ref_node_valid == 0, NULL
- * key/data/links, and can only be inspected for validity and released.
- * A retained node can be released after tree destruction by passing NULL for
- * tree. For compatibility the tree argument is otherwise ignored.
- * Both functions require a non-dangling node or NULL. Never release twice. */
-BOSNode *bostree_node_weak_ref(BOSNode *node);
-
-BOSNode *bostree_node_weak_unref(const BOSTree *tree, BOSNode *node);
-
-BOSNode *bostree_lookup(const BOSTree *tree, const void *key);
-
-BOSNode *bostree_select(const BOSTree *tree, unsigned int index);
-
-BOSNode *bostree_next_node(BOSNode *node);
-
-BOSNode *bostree_prev_node(BOSNode *node);
-
-/* Zero-based rank for attached nodes; UINT_MAX for NULL/invalidated nodes. */
-unsigned int bostree_rank(const BOSNode *node);
+bostree_node_t *bostree_lookup(const bostree_t *tree, const void *key);
+bostree_node_t *bostree_select(const bostree_t *tree, unsigned int index);
+bostree_node_t *bostree_next_node(bostree_node_t *node);
+bostree_node_t *bostree_prev_node(bostree_node_t *node);
+/* Zero-based rank; UINT_MAX for NULL or invalidated nodes. */
+unsigned int bostree_rank(const bostree_node_t *node);
 
 #if !defined(NDEBUG)
 /* DOT debug output requires NUL-terminated string keys. */
-void bostree_print(const BOSTree *tree);
-
+void bostree_print(const bostree_t *tree);
 #define bostree_debug(...) fprintf(stderr, __VA_ARGS__)
 #else
 #define bostree_debug(...) ((void)0)
 #endif
 
-#endif //BOSTREE_H
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BOSTREE_H */

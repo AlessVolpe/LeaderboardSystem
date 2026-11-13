@@ -20,7 +20,7 @@ _Static_assert(MAX_NAME_SIZE == 25, "Keep the input width synchronized with MAX_
 
 /* Names are owned by player_names; the tree owns only player_t allocations. */
 static void _tree_free(BOSNode *node) {
-    free(node->data);
+    free(bostree_node_data(node));
 }
 
 static int _compare_names(const void *lhs, const void *rhs) {
@@ -77,7 +77,11 @@ int main(void) {
     /* The hashmap borrows UUID keys; ids[] retains ownership until cleanup. */
     char *ids[MAX_PLAYERS] = {NULL};
     HASHMAP(char, player_t) pool;
-    hashmap_init(&pool, hashmap_hash_string, strcmp);
+    if (hashmap_init(&pool, hashmap_hash_string, strcmp) != 0) {
+        fprintf(stderr, "Unable to initialize player hashmap.\n");
+        _free_player_names(count, names);
+        return EXIT_FAILURE;
+    }
 
     BOSTree *leaderboard = bostree_new(_compare_names, _tree_free);
     MTRand *random = seedRand((uint32_t)time(NULL));
@@ -131,7 +135,7 @@ int main(void) {
             fprintf(stderr, "Unable to insert leaderboard node.\n");
             goto cleanup;
         }
-        if (node->data != player) {
+        if (bostree_node_data(node) != player) {
             /* Comparator-equal names share a ranking entry. */
             printf("Duplicate player name %s ignored.\n", player->name);
             free(player);
