@@ -1,6 +1,8 @@
 /*
+ * LeaderboardSystem hashmap (milestone 3.0.2).
  * Copyright (c) 2016-2020 David Leeds <davidesleeds@gmail.com>
  * Modifications Copyright (C) 2024-2026 Alessandro Volpe
+ * SPDX-License-Identifier: MIT AND GPL-3.0-only
  *
  * Based on Hashmap by David Leeds: https://github.com/DavidLeeds/hashmap
  * Original portions are licensed under the MIT License.

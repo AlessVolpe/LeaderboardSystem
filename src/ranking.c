@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Alessandro Volpe
  * SPDX-License-Identifier: GPL-3.0-only
  */
+
 #include "ranking.h"
 
 #include "bostree.h"

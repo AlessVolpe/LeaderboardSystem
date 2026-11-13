@@ -1,3 +1,8 @@
+/*
+ * LeaderboardSystem hashmap regressions (milestone 3.0.2).
+ * Copyright (C) 2026 Alessandro Volpe
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>

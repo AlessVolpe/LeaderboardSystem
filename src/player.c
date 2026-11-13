@@ -1,6 +1,8 @@
-//
-// Created by aless on 21/03/2024.
-//
+/*
+ * LeaderboardSystem player model (legacy).
+ * Copyright (C) 2024-2026 Alessandro Volpe
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
 
 #include <stdlib.h>
 

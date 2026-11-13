@@ -1,3 +1,8 @@
+/*
+ * LeaderboardSystem CLI example (legacy).
+ * Copyright (C) 2024-2026 Alessandro Volpe
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>

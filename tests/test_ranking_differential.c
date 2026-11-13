@@ -1,4 +1,8 @@
-/* Independent reference model: sort plain arrays, never tree/hash internals. */
+/*
+ * LeaderboardSystem ranking differential tests (milestone 3.0.5).
+ * Copyright (C) 2026 Alessandro Volpe
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
 #include <errno.h>
 #include <inttypes.h>
 #include <stdint.h>

@@ -1,6 +1,8 @@
-//
-// Created by aless on 22/03/2024.
-//
+/*
+ * LeaderboardSystem UUID utilities (legacy).
+ * Copyright (C) 2024-2026 Alessandro Volpe
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
 #include <time.h>
 #include <stdint.h>
 #include <string.h>
