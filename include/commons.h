@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h> /* strerror in the public error-handling macros */
 #include <errno.h>
 
 #define MAX_PLAYERS     10

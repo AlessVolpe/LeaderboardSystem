@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(leaderboardsystem VERSION 3.0.0 LANGUAGES C)
+project(leaderboardsystem VERSION 3.0.9 LANGUAGES C)
 
 include(CTest)
 include(GNUInstallDirs)
@@ -85,6 +85,11 @@ add_executable(leaderboard_cli
 )
 target_link_libraries(leaderboard_cli PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(leaderboard_cli)
+
+# Deterministic, non-interactive public ranking API example.
+add_executable(leaderboard_ranking_batch examples/ranking_batch.c)
+target_link_libraries(leaderboard_ranking_batch PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(leaderboard_ranking_batch)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

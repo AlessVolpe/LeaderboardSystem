@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
-find_package(Leaderboard 3.0 CONFIG REQUIRED)
+find_package(Leaderboard 3.0.9 CONFIG REQUIRED)
 add_executable(leaderboard_external_consumer main.c)
 target_link_libraries(leaderboard_external_consumer PRIVATE Leaderboard::leaderboard)
 
