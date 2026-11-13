@@ -2,15 +2,17 @@ cmake_minimum_required(VERSION 3.16)
 project(leaderboardsystem VERSION 3.0.0 LANGUAGES C)
 
 include(CTest)
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 option(LEADERBOARD_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(LEADERBOARD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-# The current type-safe hashmap API intentionally uses GNU C extensions such as typeof and
-# statement expressions. Removing that dependency belongs to a later refactor, not 3.0.1.
-set(CMAKE_C_EXTENSIONS ON)
+# Native modules and the new named typed hashmap API use ISO C11.
+# Deprecated HASHMAP(...) macro clients still require GNU C extensions.
+set(CMAKE_C_EXTENSIONS OFF)
 
 function(leaderboard_apply_dev_options target)
     if (MSVC)
@@ -36,6 +38,7 @@ endfunction()
 add_library(leaderboard_containers_obj OBJECT
         src/hashmap.c
         src/bostree.c
+        src/alloc.c
 )
 add_library(leaderboard_ranking_obj OBJECT
         src/ranking.c
@@ -50,9 +53,12 @@ foreach (component IN ITEMS containers ranking legacy)
     target_include_directories(leaderboard_${component}_obj PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/include)
     leaderboard_apply_dev_options(leaderboard_${component}_obj)
+    set_target_properties(leaderboard_${component}_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endforeach ()
 # Only BOSTree and structural invariant tests can see the representation.
 target_include_directories(leaderboard_containers_obj PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
+target_include_directories(leaderboard_ranking_obj PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
 
 add_library(leaderboard STATIC
@@ -67,9 +73,9 @@ set_target_properties(leaderboard PROPERTIES
         POSITION_INDEPENDENT_CODE ON
 )
 
-target_include_directories(leaderboard
-        PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+target_include_directories(leaderboard PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 leaderboard_apply_dev_options(leaderboard)
 
@@ -82,3 +88,25 @@ leaderboard_apply_dev_options(leaderboard_cli)
 if (BUILD_TESTING)
     add_subdirectory(tests)
 endif ()
+
+# Build-tree consumers keep using Leaderboard::leaderboard; installed consumers
+# get the same target via find_package(Leaderboard CONFIG REQUIRED).
+install(TARGETS leaderboard EXPORT LeaderboardTargets
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" FILES_MATCHING PATTERN "*.h")
+set(package_dir "${CMAKE_INSTALL_LIBDIR}/cmake/Leaderboard")
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/LeaderboardConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/LeaderboardConfig.cmake"
+    INSTALL_DESTINATION "${package_dir}")
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/LeaderboardConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}" COMPATIBILITY SameMajorVersion)
+install(FILES "${PROJECT_BINARY_DIR}/LeaderboardConfig.cmake"
+              "${PROJECT_BINARY_DIR}/LeaderboardConfigVersion.cmake"
+        DESTINATION "${package_dir}")
+install(EXPORT LeaderboardTargets NAMESPACE Leaderboard::
+        DESTINATION "${package_dir}")

@@ -9,6 +9,8 @@
 #include "bostree.h"
 #include "hashmap_base.h"
 
+#include "alloc_internal.h"
+
 #include <errno.h>
 #include <limits.h>
 #include <stdint.h>
@@ -55,7 +57,7 @@ static void ranking_free_order_key(BOSNode *node) {
 }
 
 static ranking_order_key_t *ranking_make_key(const char *id, int64_t score) {
-    ranking_order_key_t *key = malloc(sizeof(*key));
+    ranking_order_key_t *key = leaderboard_alloc_malloc(sizeof(*key));
     if (key != NULL) {
         key->id = id;
         key->score = score;
@@ -64,7 +66,7 @@ static ranking_order_key_t *ranking_make_key(const char *id, int64_t score) {
 }
 
 ranking_t *ranking_new(void) {
-    ranking_t *ranking = malloc(sizeof(*ranking));
+    ranking_t *ranking = leaderboard_alloc_malloc(sizeof(*ranking));
     if (ranking == NULL) return NULL;
     ranking->by_id = hashmap_base_new(ranking_hash_id, ranking_compare_id);
     if (ranking->by_id == NULL) {
@@ -123,7 +125,7 @@ int ranking_upsert(ranking_t *ranking, const char *id, int64_t score) {
     if (bostree_node_count(ranking->by_rank) == UINT_MAX) return -EOVERFLOW;
     const size_t len = strlen(id);
     if (len > SIZE_MAX - sizeof(ranking_entry_t) - 1U) return -EOVERFLOW;
-    entry = malloc(sizeof(*entry) + len + 1U);
+    entry = leaderboard_alloc_malloc(sizeof(*entry) + len + 1U);
     if (entry == NULL) return -ENOMEM;
     entry->score = score;
     memcpy(entry->id, id, len + 1U);

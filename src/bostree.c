@@ -26,6 +26,7 @@
  */
 
 #include "bostree_internal.h"
+#include "alloc_internal.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
@@ -141,7 +142,7 @@ static void _bostree_rebalance_up(BOSTree *tree, BOSNode *node) {
 }
 
 static BOSNode *_bostree_new_node(BOSNode *parent_node, void *key, void *data) {
-    BOSNode *node = calloc(1, sizeof(*node));
+    BOSNode *node = leaderboard_alloc_calloc(1, sizeof(*node));
     if (node == NULL) return NULL;
     node->key = key;
     node->data = data;
@@ -154,7 +155,7 @@ static BOSNode *_bostree_new_node(BOSNode *parent_node, void *key, void *data) {
 BOSTree *bostree_new(const BOSTree_cmp_func cmp_func, const BOSTree_free_func free_func) {
     if (cmp_func == NULL) return NULL;
 
-    BOSTree *tree = malloc(sizeof(*tree));
+    BOSTree *tree = leaderboard_alloc_malloc(sizeof(*tree));
     if (tree == NULL) return NULL;
     tree->root_node = NULL;
     tree->cmp_func = cmp_func;
