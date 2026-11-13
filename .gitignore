@@ -7,6 +7,8 @@
 /CMakeCache.txt
 /CTestTestfile.cmake
 /DartConfiguration.tcl
+/installed/
+/installed-*/
 /Testing/
 /compile_commands.json
 /.cache/
@@ -14,6 +16,9 @@
 .ninja_*
 cmake_install.cmake
 install_manifest.txt
+
+# Generated benchmark results
+/benchmark-*
 
 # C / C++ compiled outputs
 *.o

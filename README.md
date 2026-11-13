@@ -284,6 +284,16 @@ See [docs/portability-prng-3.0.9.md](docs/portability-prng-3.0.9.md) for
 seeding guarantees, non-cryptographic limitations, API naming, GNU-only legacy
 wrappers, reproducibility, and external installation instructions.
 
+### 3.0.10: Performance and release readiness
+
+An optional deterministic C11 benchmark exercises the public hashmap,
+BOSTree, and ranking APIs with fixed operation ordering, independent
+correctness checks, and machine-readable CSV results. Release builds and
+installed-package consumption are validated separately; absolute timings are
+not used as CI acceptance thresholds. See
+[docs/performance-release-3.0.10.md](docs/performance-release-3.0.10.md)
+for benchmark commands, limitations, and the release checklist.
+
 ## License and third-party notices
 
 This project is distributed under the [GNU General Public License, version 3](LICENSE).

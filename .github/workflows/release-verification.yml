@@ -1,0 +1,48 @@
+name: Release configuration and benchmark smoke
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-release:
+    name: Linux / GCC / Release / installed consumer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure optimized library and benchmarks
+        run: >-
+          cmake -S . -B build-release -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DLEADERBOARD_BUILD_BENCHMARKS=ON
+          -DLEADERBOARD_WARNINGS_AS_ERRORS=ON
+      - name: Build
+        run: cmake --build build-release --parallel
+      - name: Verify Release CTests including benchmark smoke
+        run: ctest --test-dir build-release --output-on-failure
+      - name: Benchmark reproducible workloads
+        run: |
+          ./build-release/leaderboard_bench 1000 3 > benchmark-1000.csv
+          ./build-release/leaderboard_bench 10000 3 > benchmark-10000.csv
+      - name: Install library into a disposable prefix
+        run: cmake --install build-release --prefix "$PWD/stage"
+      - name: Configure and build independent package consumer
+        run: |
+          cmake -S examples/external_consumer -B build-consumer -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/stage"
+          cmake --build build-consumer
+          ctest --test-dir build-consumer --output-on-failure
+      - name: Upload benchmark CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: leaderboard-release-benchmarks
+          path: benchmark-*.csv
+          if-no-files-found: ignore
+          retention-days: 14
