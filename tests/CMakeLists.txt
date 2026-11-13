@@ -54,3 +54,14 @@ add_test(NAME leaderboard_cli_incomplete_input COMMAND ${CMAKE_COMMAND}
     "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/cli_incomplete.txt"
     -DEXPECT_INCOMPLETE=1
     -P ${CMAKE_CURRENT_SOURCE_DIR}/run_leaderboard_cli.cmake)
+
+# 3.0.5: deterministic ranking API and independent reference-model tests.
+add_executable(test_ranking test_ranking.c)
+target_link_libraries(test_ranking PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_ranking)
+add_test(NAME ranking_regressions COMMAND test_ranking)
+
+add_executable(test_ranking_differential test_ranking_differential.c)
+target_link_libraries(test_ranking_differential PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_ranking_differential)
+add_test(NAME ranking_differential COMMAND test_ranking_differential)

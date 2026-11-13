@@ -34,6 +34,7 @@ endfunction()
 add_library(leaderboard
         src/hashmap.c
         src/bostree.c
+        src/ranking.c
         src/mtwister.c
         src/player.c
         src/commons.c
