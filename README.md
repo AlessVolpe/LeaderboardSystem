@@ -194,3 +194,12 @@ The `bostree_deletion` regression suite covers exhaustive deletion orders, rando
 The legacy CLI also receives a compiler-warning and ownership cleanup: typed player pointers replace integer-to-pointer casts, names and generated IDs have explicit lifetimes, and CTest exercises normal and invalid input.
 
 The PRNG and UUID utilities receive targeted correctness and resource-handling fixes. CI now treats compiler warnings as errors.
+
+## License and third-party notices
+
+This project is distributed under the [GNU General Public License, version 3](LICENSE).
+The hashmap, BOSTree, and MTwister implementations build on existing work;
+their original authors, license notices, and the complete MIT license are
+recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). My modifications
+are tracked in the repository history. The upstream license grants remain
+intact.

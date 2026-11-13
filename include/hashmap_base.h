@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2016-2020 David Leeds <davidesleeds@gmail.com>
+ * Modifications Copyright (C) 2024-2026 Alessandro Volpe
+ *
+ * Based on Hashmap by David Leeds: https://github.com/DavidLeeds/hashmap
+ * Original portions are licensed under the MIT License.
+ * The full upstream MIT notice and license are preserved in
+ * THIRD_PARTY_NOTICES.md. The combined project distributes under GPLv3.
+ */
+
 #ifndef HASHMAP_BASE_H
 #define HASHMAP_BASE_H
 
