@@ -65,3 +65,15 @@ add_executable(test_ranking_differential test_ranking_differential.c)
 target_link_libraries(test_ranking_differential PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(test_ranking_differential)
 add_test(NAME ranking_differential COMMAND test_ranking_differential)
+
+# 3.0.6: structural white-box tests explicitly opt into private headers;
+# applications and public API tests do not receive that include directory.
+target_include_directories(test_bostree_invariants PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/internal)
+target_include_directories(test_bostree_deletion PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/internal)
+
+add_executable(test_bostree_public_api test_bostree_public_api.c)
+target_link_libraries(test_bostree_public_api PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_bostree_public_api)
+add_test(NAME bostree_public_api COMMAND test_bostree_public_api)

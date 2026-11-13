@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bostree.h"
+#include "bostree_internal.h"
 
 #define CHECK(expr) do {                                                       \
     if (!(expr)) {                                                            \

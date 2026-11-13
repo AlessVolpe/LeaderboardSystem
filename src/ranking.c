@@ -51,7 +51,7 @@ static int ranking_compare_score(const void *lhs, const void *rhs) {
 }
 
 static void ranking_free_order_key(BOSNode *node) {
-    free(node->key);
+    free((void *)bostree_node_key(node));
 }
 
 static ranking_order_key_t *ranking_make_key(const char *id, int64_t score) {
@@ -172,7 +172,7 @@ int ranking_at(const ranking_t *ranking, size_t rank,
     if (rank >= ranking_size(ranking)) return -ENOENT;
     const BOSNode *node = bostree_select(ranking->by_rank, (unsigned int)rank);
     if (node == NULL) return -ENOENT;
-    const ranking_entry_t *entry = node->data;
+    const ranking_entry_t *entry = bostree_node_data(node);
     if (id != NULL) *id = entry->id;
     if (score != NULL) *score = entry->score;
     return 0;

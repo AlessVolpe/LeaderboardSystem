@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bostree.h"
+#include "bostree_internal.h"
 
 #define CHECK(condition) do {                                                       \
     if (!(condition)) {                                                            \

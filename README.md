@@ -211,6 +211,24 @@ are described in [docs/ranking-contract.md](docs/ranking-contract.md).
 The existing example CLI remains unchanged; Fantacalcio-specific scoring and
 simulation logic are deferred to later milestones.
 
+### 3.0.6: Module boundaries and BOSTree API encapsulation
+
+The build now compiles containers, ranking and legacy utilities as separate
+internal CMake object targets, then combines them into the existing
+`Leaderboard::leaderboard` static library. This preserves the established
+consumer target without suggesting that each component is already installed
+or independently linkable.
+
+BOSTree now exposes opaque `bostree_t` and `bostree_node_t` handles, with
+borrowed key/data and validity accessors. Older `BOSTree` and `BOSNode`
+typedefs remain available, but directly accessing node or tree fields is no
+longer part of the public API. Structural regression tests explicitly include
+the private representation; normal consumers do not. The ownership and
+finalization rules from 3.0.4 remain unchanged.
+
+The compatibility boundary, dependency layout and remaining hashmap API work
+are described in [docs/api-encapsulation-contract.md](docs/api-encapsulation-contract.md).
+
 ## License and third-party notices
 
 This project is distributed under the [GNU General Public License, version 3](LICENSE).

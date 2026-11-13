@@ -25,14 +25,25 @@
  * See THIRD_PARTY_NOTICES.md for upstream attribution and modification history.
  */
 
-#include "bostree.h"
-#include "commons.h"
-
+#include "bostree_internal.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Stable public accessors; callbacks may inspect payloads during disposal. */
+const void *bostree_node_key(const bostree_node_t *node) {
+    return node == NULL ? NULL : node->key;
+}
+
+void *bostree_node_data(const bostree_node_t *node) {
+    return node == NULL ? NULL : node->data;
+}
+
+bool bostree_node_is_valid(const bostree_node_t *node) {
+    return node != NULL && node->weak_ref_node_valid != 0U;
+}
 
 /* A leaf has depth 0; the height of an empty subtree is -1. */
 static int _bostree_height(const BOSNode *node) {

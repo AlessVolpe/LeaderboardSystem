@@ -31,13 +31,34 @@ function(leaderboard_apply_dev_options target)
     endif ()
 endfunction()
 
-add_library(leaderboard
+# Compile modules independently while preserving the original single static
+# archive and its Leaderboard::leaderboard link target for existing consumers.
+add_library(leaderboard_containers_obj OBJECT
         src/hashmap.c
         src/bostree.c
+)
+add_library(leaderboard_ranking_obj OBJECT
         src/ranking.c
+)
+add_library(leaderboard_legacy_obj OBJECT
         src/mtwister.c
         src/player.c
         src/commons.c
+)
+
+foreach (component IN ITEMS containers ranking legacy)
+    target_include_directories(leaderboard_${component}_obj PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    leaderboard_apply_dev_options(leaderboard_${component}_obj)
+endforeach ()
+# Only BOSTree and structural invariant tests can see the representation.
+target_include_directories(leaderboard_containers_obj PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
+
+add_library(leaderboard STATIC
+        $<TARGET_OBJECTS:leaderboard_containers_obj>
+        $<TARGET_OBJECTS:leaderboard_ranking_obj>
+        $<TARGET_OBJECTS:leaderboard_legacy_obj>
 )
 add_library(Leaderboard::leaderboard ALIAS leaderboard)
 
