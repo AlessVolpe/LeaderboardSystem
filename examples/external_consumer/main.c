@@ -8,6 +8,7 @@
 #include <string.h>
 #include "ranking.h"
 #include "mtwister.h"
+#include "player.h"
 #include "hashmap_typed.h"
 
 HASHMAP_TYPED_DEFINE(external_score_map, char, int)
@@ -40,5 +41,18 @@ int main(void) {
     ok = mtwister_next_u32(rng) == UINT32_C(3499211612) &&
          mtwister_next_u32(rng) == UINT32_C(581869302);
     mtwister_destroy(rng);
+    if (!ok) return EXIT_FAILURE;
+
+    char team_name[] = "Brigate Ebosse";
+    player_t *team = player_create_with_total(team_name, UINT32_C(24835));
+    if (team == NULL) return EXIT_FAILURE;
+    ok = team->championship_points == 0U &&
+         team->total_points_tenths == UINT32_C(24835) &&
+         player_add_championship_points(team, 3U) == 0 &&
+         team->championship_points == 3U;
+    player_reset_championship_points(team);
+    ok = ok && team->championship_points == 0U &&
+         team->total_points_tenths == UINT32_C(24835);
+    player_destroy(team);
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

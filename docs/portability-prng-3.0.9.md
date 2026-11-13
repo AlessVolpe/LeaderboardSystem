@@ -93,10 +93,12 @@ additive and has the same layout and ABI as `MTRand`. No existing public symbol
 has been removed or renamed; legacy `seedRand`, `genRandLong`, and `genRand`
 keep their prior output sequences and ownership rules.
 
-A `player_t` has an unsigned 32-bit score and borrows its name string;
-`ranking_t` owns copied identifiers and uses signed 64-bit scores. This is a
-semantic boundary, not just a naming difference. No implicit conversion is
-introduced.
+At milestone 3.0.9, `player_t` had an unsigned 32-bit score and borrowed
+its name string. The later team-model refactor replaces that field with
+`championship_points` and `total_points_tenths` (see
+[team-player-model.md](team-player-model.md)). The generic `ranking_t` still
+owns copied identifiers and uses signed 64-bit scores. No implicit conversion
+between the two APIs is introduced.
 
 New portable hashmaps should use `HASHMAP_TYPED_DEFINE` in
 `include/hashmap_typed.h` and the C11-compatible functions in
