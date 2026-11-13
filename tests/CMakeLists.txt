@@ -130,3 +130,90 @@ add_test(NAME installed_consumer
         "-DCONFIG=$<CONFIG>"
         "-DSANITIZERS=${LEADERBOARD_ENABLE_SANITIZERS}"
         -P "${PROJECT_SOURCE_DIR}/tests/verify_installed_consumer.cmake")
+
+# 3.0.8: exhaustive logical state checks around controlled allocation failures.
+add_executable(test_failure_matrix test_failure_matrix.c)
+target_include_directories(test_failure_matrix PRIVATE
+    ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/internal)
+target_compile_definitions(test_failure_matrix PRIVATE LEADERBOARD_TEST_ALLOCATION_FAULTS)
+target_link_libraries(test_failure_matrix PRIVATE leaderboard_fault_test)
+leaderboard_apply_dev_options(test_failure_matrix)
+add_test(NAME allocation_failure_matrix COMMAND test_failure_matrix)
+
+# Malformed inputs and boundary-value behavior on the supported public API.
+add_executable(test_api_edges test_api_edges.c)
+target_link_libraries(test_api_edges PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_api_edges)
+add_test(NAME api_adversarial_edges COMMAND test_api_edges)
+
+# Identical input-driven state machines serve both CTest and optional libFuzzer.
+foreach (container IN ITEMS hashmap bostree)
+    add_executable(test_fuzz_${container} fuzz_${container}.c)
+    target_link_libraries(test_fuzz_${container} PRIVATE Leaderboard::leaderboard)
+    target_include_directories(test_fuzz_${container} PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/internal)
+    leaderboard_apply_dev_options(test_fuzz_${container})
+    add_test(NAME ${container}_adversarial COMMAND test_fuzz_${container})
+endforeach ()
+
+if (LEADERBOARD_BUILD_FUZZERS)
+    if (NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
+        message(FATAL_ERROR "LEADERBOARD_BUILD_FUZZERS requires Clang with libFuzzer")
+    endif ()
+
+    # Not every Clang target supports the libFuzzer driver. In particular,
+    # MSYS2 UCRT64's x86_64-w64-windows-gnu target rejects -fsanitize=fuzzer.
+    # Probe both the instrument-only flag and an actual instrumented link.
+    include(CheckCCompilerFlag)
+    # The no-link flag needs a compile-only probe: its instrumented object
+    # cannot link by itself because libFuzzer supplies coverage callbacks.
+    set(_leaderboard_saved_try_compile_type "${CMAKE_TRY_COMPILE_TARGET_TYPE}")
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+    check_c_compiler_flag("-fsanitize=fuzzer-no-link"
+        LEADERBOARD_LIBFUZZER_NO_LINK_SUPPORTED)
+    if (_leaderboard_saved_try_compile_type)
+        set(CMAKE_TRY_COMPILE_TARGET_TYPE "${_leaderboard_saved_try_compile_type}")
+    else ()
+        unset(CMAKE_TRY_COMPILE_TARGET_TYPE)
+    endif ()
+    unset(_leaderboard_saved_try_compile_type)
+    include(CheckCSourceCompiles)
+    set(CMAKE_REQUIRED_FLAGS "-fsanitize=fuzzer,address,undefined")
+    set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=fuzzer,address,undefined")
+    check_c_source_compiles("#include <stddef.h>\n#include <stdint.h>\nint LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) { (void)data; (void)size; return 0; }"
+        LEADERBOARD_LIBFUZZER_LINK_SUPPORTED)
+    unset(CMAKE_REQUIRED_FLAGS)
+    unset(CMAKE_REQUIRED_LINK_OPTIONS)
+    if (NOT LEADERBOARD_LIBFUZZER_NO_LINK_SUPPORTED OR
+        NOT LEADERBOARD_LIBFUZZER_LINK_SUPPORTED)
+        message(FATAL_ERROR
+            "Clang compiler '${CMAKE_C_COMPILER}' on ${CMAKE_SYSTEM_NAME} "
+            "does not support the libFuzzer instrumentation and runtime used by this build. "
+            "For deterministic adversarial CTest runs, reconfigure with "
+            "-DLEADERBOARD_BUILD_FUZZERS=OFF; for coverage-guided libFuzzer "
+            "campaigns use a compatible Clang target (for example Linux/WSL).")
+    endif ()
+
+    # Instrument the data structures themselves, not only the fuzz entry points.
+    add_library(leaderboard_fuzz_core STATIC
+        ${PROJECT_SOURCE_DIR}/src/hashmap.c
+        ${PROJECT_SOURCE_DIR}/src/bostree.c
+        ${PROJECT_SOURCE_DIR}/src/alloc.c)
+    target_include_directories(leaderboard_fuzz_core PRIVATE
+        ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/internal)
+    target_compile_options(leaderboard_fuzz_core PRIVATE
+        -fsanitize=fuzzer-no-link,address,undefined -fno-omit-frame-pointer)
+    leaderboard_apply_dev_options(leaderboard_fuzz_core)
+    foreach (container IN ITEMS hashmap bostree)
+        add_executable(fuzz_${container}_libfuzzer fuzz_${container}.c)
+        target_compile_definitions(fuzz_${container}_libfuzzer PRIVATE LEADERBOARD_LIBFUZZER)
+        target_include_directories(fuzz_${container}_libfuzzer PRIVATE
+            ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/internal)
+        target_link_libraries(fuzz_${container}_libfuzzer PRIVATE leaderboard_fuzz_core)
+        target_compile_options(fuzz_${container}_libfuzzer PRIVATE
+            -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer)
+        target_link_options(fuzz_${container}_libfuzzer PRIVATE
+            -fsanitize=fuzzer,address,undefined)
+        leaderboard_apply_dev_options(fuzz_${container}_libfuzzer)
+    endforeach ()
+endif ()

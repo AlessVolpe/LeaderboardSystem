@@ -253,6 +253,19 @@ consistency. A CMake install/export package exposes the familiar
 CTest. See [docs/portable-callbacks-failures-packaging.md](docs/portable-callbacks-failures-packaging.md)
 for limitations and verification details.
 
+### 3.0.8: Failure safety and adversarial testing
+
+The test suite now sweeps allocation failures across ranking insertion,
+score updates, hashmap growth and owned-key callbacks, and BOSTree reference
+lifecycles. A separate API-edge suite tests malformed arguments and boundary
+values. Input-driven hashmap and AVL state machines run reproducible,
+collision-heavy and deletion-heavy workloads in CTest, and may also be built
+as Clang/libFuzzer targets with sanitizer instrumentation.
+
+No production algorithms or public ranking operations are changed. See
+[docs/failure-adversarial-contract.md](docs/failure-adversarial-contract.md)
+for the tested invariants, fuzzing commands, and limitations.
+
 ## License and third-party notices
 
 This project is distributed under the [GNU General Public License, version 3](LICENSE).
