@@ -86,3 +86,47 @@ add_executable(test_hashmap_public_api test_hashmap_public_api.c)
 target_link_libraries(test_hashmap_public_api PRIVATE Leaderboard::leaderboard)
 leaderboard_apply_dev_options(test_hashmap_public_api)
 add_test(NAME hashmap_public_api COMMAND test_hashmap_public_api)
+
+# The original anonymous typed wrappers still require GNU C extensions.
+set_target_properties(test_hashmap test_hashmap_macros test_hashmap_public_api
+    PROPERTIES C_EXTENSIONS ON)
+
+# New C11 typed wrappers never cast between incompatible function pointer types.
+add_executable(test_hashmap_portable test_hashmap_portable.c)
+target_link_libraries(test_hashmap_portable PRIVATE Leaderboard::leaderboard)
+leaderboard_apply_dev_options(test_hashmap_portable)
+set_target_properties(test_hashmap_portable PROPERTIES C_EXTENSIONS OFF)
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(test_hashmap_portable PRIVATE -pedantic-errors)
+endif()
+add_test(NAME hashmap_portable_callbacks COMMAND test_hashmap_portable)
+
+# Fault injection is compiled only into a separate test archive. Production
+# library objects do not expose the failure-control functions.
+add_library(leaderboard_fault_test STATIC
+    ${PROJECT_SOURCE_DIR}/src/hashmap.c
+    ${PROJECT_SOURCE_DIR}/src/bostree.c
+    ${PROJECT_SOURCE_DIR}/src/ranking.c
+    ${PROJECT_SOURCE_DIR}/src/alloc.c)
+target_include_directories(leaderboard_fault_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/internal)
+target_compile_definitions(leaderboard_fault_test PRIVATE LEADERBOARD_TEST_ALLOCATION_FAULTS)
+leaderboard_apply_dev_options(leaderboard_fault_test)
+add_executable(test_allocation_failures test_allocation_failures.c)
+target_include_directories(test_allocation_failures PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/src/internal)
+target_compile_definitions(test_allocation_failures PRIVATE LEADERBOARD_TEST_ALLOCATION_FAULTS)
+target_link_libraries(test_allocation_failures PRIVATE leaderboard_fault_test)
+leaderboard_apply_dev_options(test_allocation_failures)
+add_test(NAME allocation_failures COMMAND test_allocation_failures)
+
+add_test(NAME installed_consumer
+    COMMAND "${CMAKE_COMMAND}"
+        "-DROOT=${PROJECT_SOURCE_DIR}"
+        "-DBUILD_ROOT=${PROJECT_BINARY_DIR}"
+        "-DGENERATOR=${CMAKE_GENERATOR}"
+        "-DC_COMPILER=${CMAKE_C_COMPILER}"
+        "-DCONFIG=$<CONFIG>"
+        "-DSANITIZERS=${LEADERBOARD_ENABLE_SANITIZERS}"
+        -P "${PROJECT_SOURCE_DIR}/tests/verify_installed_consumer.cmake")

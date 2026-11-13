@@ -237,6 +237,22 @@ white-box tests retain access to the private representation.
 The compatibility boundaries, dependency layout and remaining portability work
 are described in [docs/api-encapsulation-contract.md](docs/api-encapsulation-contract.md).
 
+### 3.0.7: Portable callbacks, failure injection and installable package
+
+The native library now offers a C11-compatible named typed-hashmap API using
+context-aware adapters with correctly typed hash, comparator and key-lifecycle
+callbacks. New consumers can avoid the GNU `typeof`/statement-expression
+macros and incompatible function-pointer casts of the legacy wrappers. The
+example CLI uses the portable API; the historical macros are retained for
+migration and regression testing.
+
+A private allocation boundary and separate fault-injection test archive
+exercise constructor failure, insertion rollback and ranking score-update
+consistency. A CMake install/export package exposes the familiar
+`Leaderboard::leaderboard` target, with an independent installed-consumer
+CTest. See [docs/portable-callbacks-failures-packaging.md](docs/portable-callbacks-failures-packaging.md)
+for limitations and verification details.
+
 ## License and third-party notices
 
 This project is distributed under the [GNU General Public License, version 3](LICENSE).

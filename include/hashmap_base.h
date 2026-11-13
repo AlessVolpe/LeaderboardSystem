@@ -29,6 +29,26 @@ typedef struct hashmap_entry hashmap_entry_t;
 typedef hashmap_base_t hashmap_base;
 typedef hashmap_entry_t hashmap_entry;
 
+/* Context-aware callbacks have their exact declared function types. They
+ * avoid undefined behavior from casting an unrelated function-pointer type.
+ * The context is borrowed on failed construction and owned by the map on
+ * successful construction when context_destroy is non-NULL. */
+typedef size_t (*hashmap_hash_ctx_fn_t)(const void *key, void *context);
+typedef int (*hashmap_compare_ctx_fn_t)(const void *a, const void *b,
+                                         void *context);
+typedef void *(*hashmap_key_dup_ctx_fn_t)(const void *key, void *context);
+typedef void (*hashmap_key_free_ctx_fn_t)(void *key, void *context);
+
+hashmap_base_t *hashmap_base_new_with_context(
+    hashmap_hash_ctx_fn_t hash, hashmap_compare_ctx_fn_t compare,
+    void *context, void (*context_destroy)(void *));
+
+/* The callbacks must be a complete pair. Existing entries forbid changes.
+ * Only valid for a map created with hashmap_base_new_with_context(). */
+int hashmap_base_set_context_key_alloc_funcs(
+    hashmap_base_t *map, hashmap_key_dup_ctx_fn_t duplicate,
+    hashmap_key_free_ctx_fn_t release);
+
 /* Allocate/destroy a hashmap. NULL callbacks or allocation failure return
  * NULL. Caller owns the handle; borrowed keys and data are not released on destruction unless
  * key ownership callbacks have been explicitly registered. */

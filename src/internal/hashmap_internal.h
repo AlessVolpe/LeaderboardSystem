@@ -25,6 +25,12 @@ typedef struct hashmap_base {
     int (*compare)(const void *, const void *);
     void *(*key_dup)(const void *);
     void (*key_free)(void *);
+    hashmap_hash_ctx_fn_t hash_context;
+    hashmap_compare_ctx_fn_t compare_context;
+    hashmap_key_dup_ctx_fn_t key_dup_context;
+    hashmap_key_free_ctx_fn_t key_free_context;
+    void *context;
+    void (*context_destroy)(void *);
 } hashmap_base;
 
 /* Stack lifecycle is internal to the implementation and white-box tests.

@@ -21,6 +21,12 @@ extern "C" {
 #include <stddef.h>
 #include "hashmap_base.h"
 
+/* LEGACY GNU API: HASHMAP(...) uses typeof and statement expressions and
+ * casts typed callbacks to unrelated function-pointer signatures. These calls
+ * are not portable ISO C. New code should use hashmap_typed.h, which provides
+ * named C11 map types and strictly type-correct callback adapters. */
+
+
 /*
  * INTERNAL USE ONLY
  */

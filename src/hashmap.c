@@ -16,6 +16,8 @@
 
 #include "hashmap_internal.h"
 
+#include "alloc_internal.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -28,10 +30,49 @@
 hashmap_base_t *hashmap_base_new(size_t (*hash_func)(const void *),
                                 int (*compare_func)(const void *, const void *)) {
     if (hash_func == NULL || compare_func == NULL) return NULL;
-    hashmap_base_t *hb = malloc(sizeof(*hb));
+    hashmap_base_t *hb = leaderboard_alloc_malloc(sizeof(*hb));
     if (hb == NULL) return NULL;
     hashmap_base_init(hb, hash_func, compare_func);
     return hb;
+}
+
+hashmap_base_t *hashmap_base_new_with_context(
+    hashmap_hash_ctx_fn_t hash, hashmap_compare_ctx_fn_t compare,
+    void *context, void (*context_destroy)(void *)) {
+    if (hash == NULL || compare == NULL) return NULL;
+    hashmap_base_t *hb = leaderboard_alloc_calloc(1, sizeof(*hb));
+    if (hb == NULL) return NULL;
+    hb->table_size_init = 128u;
+    hb->hash_context = hash;
+    hb->compare_context = compare;
+    hb->context = context;
+    hb->context_destroy = context_destroy;
+    return hb;
+}
+
+static size_t call_hash(const hashmap_base_t *hb, const void *key) {
+    return hb->hash_context != NULL
+        ? hb->hash_context(key, hb->context) : hb->hash(key);
+}
+
+static int call_compare(const hashmap_base_t *hb, const void *left,
+                        const void *right) {
+    return hb->compare_context != NULL
+        ? hb->compare_context(left, right, hb->context)
+        : hb->compare(left, right);
+}
+
+static void *call_key_duplicate(const hashmap_base_t *hb, const void *key) {
+    if (hb->key_dup_context != NULL)
+        return hb->key_dup_context(key, hb->context);
+    return hb->key_dup != NULL ? hb->key_dup(key) : (void *)key;
+}
+
+static void call_key_release(const hashmap_base_t *hb, void *key) {
+    if (hb->key_free_context != NULL)
+        hb->key_free_context(key, hb->context);
+    else if (hb->key_free != NULL)
+        hb->key_free(key);
 }
 
 void hashmap_base_destroy(hashmap_base_t *hb) {
@@ -75,7 +116,7 @@ static int table_size_for(size_t capacity, size_t minimum, size_t *result) {
 }
 
 static size_t initial_slot(const hashmap_base *hb, const void *key) {
-    size_t hash = hb->hash(key);
+    size_t hash = call_hash(hb, key);
     /* Retain the existing secondary hash for compatibility. */
     return hashmap_hash_default(&hash, sizeof(hash)) & (hb->table_size - 1u);
 }
@@ -86,7 +127,7 @@ static hashmap_entry *find_slot(const hashmap_base *hb, const void *key, bool em
     for (size_t scanned = 0; scanned < hb->table_size; ++scanned) {
         hashmap_entry *entry = &hb->table[index];
         if (entry->key == NULL) return empty_ok ? entry : NULL;
-        if (hb->compare(key, entry->key) == 0) return entry;
+        if (call_compare(hb, key, entry->key) == 0) return entry;
         index = next_slot(hb, index);
     }
     return NULL;
@@ -96,7 +137,7 @@ static hashmap_entry *find_slot(const hashmap_base *hb, const void *key, bool em
 static int rehash(hashmap_base *hb, size_t count) {
     assert(count && (count & (count - 1u)) == 0);
     if (count > SIZE_MAX / sizeof(hashmap_entry)) return -EOVERFLOW;
-    hashmap_entry *next = calloc(count, sizeof(*next));
+    hashmap_entry *next = leaderboard_alloc_calloc(count, sizeof(*next));
     if (next == NULL) return -ENOMEM;
 
     hashmap_base updated = *hb;
@@ -116,16 +157,16 @@ static int rehash(hashmap_base *hb, size_t count) {
 }
 
 static void free_owned_keys(const hashmap_base *hb) {
-    if (hb->key_free == NULL || hb->size == 0) return;
+    if ((hb->key_free == NULL && hb->key_free_context == NULL) || hb->size == 0) return;
     for (size_t i = 0; i < hb->table_size; ++i) {
-        if (hb->table[i].key != NULL) hb->key_free(hb->table[i].key);
+        if (hb->table[i].key != NULL) call_key_release(hb, hb->table[i].key);
     }
 }
 
 /* Preserve lookup correctness when deleting an entry from a probe cluster. */
 static void erase_slot(hashmap_base *hb, hashmap_entry *entry) {
     size_t hole = (size_t) (entry - hb->table);
-    if (hb->key_free != NULL) hb->key_free(entry->key);
+    call_key_release(hb, entry->key);
     *entry = (hashmap_entry)
     {
         0
@@ -162,6 +203,7 @@ void hashmap_base_cleanup(hashmap_base *hb) {
     if (hb == NULL) return;
     free_owned_keys(hb);
     free(hb->table);
+    if (hb->context_destroy != NULL) hb->context_destroy(hb->context);
     memset(hb, 0, sizeof(*hb));
 }
 
@@ -172,6 +214,17 @@ int hashmap_base_set_key_alloc_funcs(hashmap_base * hb,
     if (hb->size != 0) return -EBUSY;
     hb->key_dup = key_dup_func;
     hb->key_free = key_free_func;
+    return 0;
+}
+
+int hashmap_base_set_context_key_alloc_funcs(
+    hashmap_base_t *hb, hashmap_key_dup_ctx_fn_t duplicate,
+    hashmap_key_free_ctx_fn_t release) {
+    if (hb == NULL || hb->hash_context == NULL ||
+        ((duplicate == NULL) != (release == NULL))) return -EINVAL;
+    if (hb->size != 0) return -EBUSY;
+    hb->key_dup_context = duplicate;
+    hb->key_free_context = release;
     return 0;
 }
 
@@ -203,7 +256,7 @@ int hashmap_base_put(hashmap_base *hb, const void *key, const void *data) {
 
     hashmap_entry *slot = find_slot(hb, key, true);
     if (slot == NULL) return -ENOSPC;
-    void *stored_key = hb->key_dup == NULL ? (void *) key : hb->key_dup(key);
+    void *stored_key = call_key_duplicate(hb, key);
     if (stored_key == NULL) return -ENOMEM;
     slot->key = stored_key;
     slot->data = (void *) data;
@@ -243,7 +296,7 @@ void hashmap_base_reset(hashmap_base *hb) {
     hashmap_base_clear(hb);
     if (hb->table == NULL || hb->table_size == hb->table_size_init) return;
     /* A failed shrink is harmless: the empty table remains valid. */
-    hashmap_entry *smaller = calloc(hb->table_size_init, sizeof(*smaller));
+    hashmap_entry *smaller = leaderboard_alloc_calloc(hb->table_size_init, sizeof(*smaller));
     if (smaller == NULL) return;
     free(hb->table);
     hb->table = smaller;
@@ -312,7 +365,7 @@ size_t hashmap_base_collisions(const hashmap_base *hb, const void *key) {
     for (size_t probes = 0; probes < hb->table_size; ++probes) {
         const hashmap_entry *entry = &hb->table[index];
         if (entry->key == NULL) return 0;
-        if (hb->compare(key, entry->key) == 0) return probes;
+        if (call_compare(hb, key, entry->key) == 0) return probes;
         index = next_slot(hb, index);
     }
     return 0;

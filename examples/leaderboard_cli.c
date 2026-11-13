@@ -12,9 +12,11 @@
 
 #include "bostree.h"
 #include "commons.h"
-#include "hashmap.h"
+#include "hashmap_typed.h"
 #include "mtwister.h"
 #include "player.h"
+
+HASHMAP_TYPED_DEFINE(player_pool, char, player_t)
 
 _Static_assert(MAX_NAME_SIZE == 25, "Keep the input width synchronized with MAX_NAME_SIZE");
 
@@ -76,8 +78,8 @@ int main(void) {
 
     /* The hashmap borrows UUID keys; ids[] retains ownership until cleanup. */
     char *ids[MAX_PLAYERS] = {NULL};
-    HASHMAP(char, player_t) pool;
-    if (hashmap_init(&pool, hashmap_hash_string, strcmp) != 0) {
+    player_pool_t pool = {0};
+    if (player_pool_init(&pool, hashmap_hash_string, strcmp) != 0) {
         fprintf(stderr, "Unable to initialize player hashmap.\n");
         _free_player_names(count, names);
         return EXIT_FAILURE;
@@ -86,9 +88,6 @@ int main(void) {
     BOSTree *leaderboard = bostree_new(_compare_names, _tree_free);
     MTRand *random = seedRand((uint32_t)time(NULL));
     int result = EXIT_FAILURE;
-    const char *key;
-    player_t *data;
-    void *temp;
 
     if (leaderboard == NULL || random == NULL) {
         fprintf(stderr, "Unable to initialize leaderboard or random generator.\n");
@@ -105,7 +104,7 @@ int main(void) {
             goto cleanup;
         }
 
-        const int status = hashmap_put(&pool, id, player);
+        const int status = player_pool_put(&pool, id, player);
         if (status != 0) {
             fprintf(stderr, "Unable to store player %s (error %d).\n", names[i], status);
             free(player);
@@ -117,18 +116,20 @@ int main(void) {
     }
 
     printf("\nFormat: player_name[player_id] with score n\n");
-    hashmap_foreach(key, data, &pool) {
+    player_pool_iterator_t it = player_pool_iter(&pool);
+    while (player_pool_iter_valid(&it)) {
+        const char *key = player_pool_iter_key(&it);
+        player_t *data = player_pool_iter_value(&it);
         player_adding_points(data, (uint32_t)(genRand(random) * 100.0));
         printf("Player: %s[%s] with score %" PRIu32 "\n", data->name, key, data->score);
+        (void)player_pool_iter_next(&it);
     }
 
     /* Removing transfers player ownership from the pool to the tree. */
-    hashmap_foreach_key_safe(key, &pool, temp) {
-        player_t *player = hashmap_remove(&pool, key);
-        if (player == NULL) {
-            fprintf(stderr, "Unable to transfer player to leaderboard.\n");
-            goto cleanup;
-        }
+    it = player_pool_iter(&pool);
+    while (player_pool_iter_valid(&it)) {
+        player_t *player = player_pool_iter_value(&it);
+        (void)player_pool_iter_remove(&it);
         BOSNode *node = bostree_insert(leaderboard, player->name, player);
         if (node == NULL) {
             free(player);
@@ -151,10 +152,13 @@ int main(void) {
 
 cleanup:
     /* These are the values still in the hashmap, not the ones in the tree. */
-    hashmap_foreach_key_safe(key, &pool, temp) {
-        free(hashmap_remove(&pool, key));
+    it = player_pool_iter(&pool);
+    while (player_pool_iter_valid(&it)) {
+        player_t *player = player_pool_iter_value(&it);
+        (void)player_pool_iter_remove(&it);
+        free(player);
     }
-    hashmap_cleanup(&pool);
+    player_pool_cleanup(&pool);
     bostree_destroy(leaderboard);
     for (size_t i = 0; i < count; ++i) free(ids[i]);
     _free_player_names(count, names);
