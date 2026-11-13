@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(leaderboardsystem VERSION 3.0.10 LANGUAGES C)
+project(leaderboardsystem VERSION 3.0.10.5 LANGUAGES C)
 
 include(CTest)
 include(GNUInstallDirs)
